@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -48,7 +48,7 @@
 !!                    in argument
 !! \param NSPEC2D_BOTTOM Integer to compute the size of the arrays
 !!                       in argument
-  subroutine save_arrays_solver_adios(myrank,nspec,nglob,idoubling,ibool, &
+  subroutine save_arrays_solver_adios(idoubling,ibool, &
                                       iregion_code,xstore,ystore,zstore, &
                                       NSPEC2DMAX_XMIN_XMAX, NSPEC2DMAX_YMIN_YMAX, &
                                       NSPEC2D_TOP,NSPEC2D_BOTTOM)
@@ -62,9 +62,10 @@
   use meshfem3D_par, only: &
     NCHUNKS,ABSORBING_CONDITIONS,SAVE_MESH_FILES, LOCAL_PATH, &
     ADIOS_FOR_SOLVER_MESHFILES, &
-    ROTATION,EXACT_MASS_MATRIX_FOR_ROTATION
+    ROTATION,EXACT_MASS_MATRIX_FOR_ROTATION, &
+    nspec,nglob
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     xixstore,xiystore,xizstore,etaxstore,etaystore,etazstore, &
     gammaxstore,gammaystore,gammazstore, &
     rhostore,dvpstore,kappavstore,kappahstore,muvstore,muhstore,eta_anisostore, &
@@ -89,9 +90,6 @@
   use manager_adios
 
   implicit none
-
-  integer :: myrank
-  integer :: nspec,nglob
 
   ! doubling mesh flag
   integer, dimension(nspec) :: idoubling
@@ -145,13 +143,13 @@
   ! helpers functions.
   group_size_inc = 0
 
-  call adios_declare_group(adios_group, group_name, "", 1, adios_err)
+  call adios_declare_group(adios_group, group_name, '', 1, adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
   ! We set the transport method to 'MPI'. This seems to be the correct choice
   ! for now. We might want to move this to the constant.h file later on.
-  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, "", "", adios_err)
+  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, '', '', adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
@@ -580,11 +578,11 @@
   ! set the adios group size to 0 before incremented by calls to
   ! helpers functions.
   group_size_inc = 0
-  call adios_declare_group(adios_group, group_name, "", 1, adios_err)
+  call adios_declare_group(adios_group, group_name, '', 1, adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
-  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, "", "", adios_err)
+  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, '', '', adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
@@ -833,9 +831,9 @@
   if (SAVE_MESH_FILES) then
     ! outputs model files in binary format
     if (ADIOS_FOR_SOLVER_MESHFILES) then
-      call save_arrays_solver_meshfiles_adios(myrank,iregion_code,nspec)
+      call save_arrays_solver_meshfiles_adios(iregion_code)
     else
-      call save_arrays_solver_meshfiles(myrank,nspec)
+      call save_arrays_solver_meshfiles(nspec)
     endif
   endif
 
@@ -851,18 +849,18 @@
 !! \param iregion_code Code of the region considered. See constant.h for details
 !! \param reg_name Output file prefix with the name of the region included
 !! \param nspec Number of GLL points per spectral elements
-  subroutine save_arrays_solver_meshfiles_adios(myrank, iregion_code, nspec)
+  subroutine save_arrays_solver_meshfiles_adios(iregion_code)
 
   use constants
 
   use meshfem3D_par, only: &
-    LOCAL_PATH
+    LOCAL_PATH,nspec
 
   use meshfem3D_models_par, only: &
     TRANSVERSE_ISOTROPY,ATTENUATION, &
     ATTENUATION_3D,ATTENUATION_1D_WITH_3D_STORAGE
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     rhostore,kappavstore,kappahstore,muvstore,muhstore,eta_anisostore, &
     Qmu_store
 
@@ -872,7 +870,7 @@
 
   implicit none
 
-  integer :: myrank, nspec, iregion_code
+  integer :: nspec, iregion_code
 
   ! local parameters
   integer :: i,j,k,ispec
@@ -903,11 +901,11 @@
 
   group_size_inc = 0
 
-  call adios_declare_group(adios_group, group_name, "", 1, adios_err)
+  call adios_declare_group(adios_group, group_name, '', 1, adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
-  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, "", "", adios_err)
+  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, '', '', adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
@@ -1048,7 +1046,7 @@
 !! \param LOCAL_PATH The full path to the output directory
 !! \param num_interfaces The number of interfaces between processors
 !! \param max_nibool_interfaces
-!! \param my_neighbours
+!! \param my_neighbors
 !! \param nibool_interfaces
 !! \param ibool_interfaces
 !! \param nspec_inner Number of spectral elements in the inner core
@@ -1058,8 +1056,8 @@
 !! \param num_colors_inner Number of colors for GPU computing in the inner core.
 !! \param num_colors_outer Number of colors for GPU computing in the outer core.
 
-  subroutine save_mpi_arrays_adios(myrank,iregion_code,LOCAL_PATH, &
-                                   num_interfaces,max_nibool_interfaces, my_neighbours,nibool_interfaces, &
+  subroutine save_mpi_arrays_adios(iregion_code,LOCAL_PATH, &
+                                   num_interfaces,max_nibool_interfaces, my_neighbors,nibool_interfaces, &
                                    ibool_interfaces, nspec_inner,nspec_outer, num_phase_ispec, &
                                    phase_ispec_inner, num_colors_outer,num_colors_inner, num_elem_colors)
 
@@ -1072,11 +1070,11 @@
 
   implicit none
 
-  integer :: iregion_code,myrank
+  integer :: iregion_code
   character(len=MAX_STRING_LEN) :: LOCAL_PATH
   ! MPI interfaces
   integer :: num_interfaces,max_nibool_interfaces
-  integer, dimension(num_interfaces) :: my_neighbours
+  integer, dimension(num_interfaces) :: my_neighbors
   integer, dimension(num_interfaces) :: nibool_interfaces
   integer, dimension(max_nibool_interfaces,num_interfaces) :: &
       ibool_interfaces
@@ -1129,11 +1127,11 @@
   write(group_name,"('SPECFEM3D_GLOBE_MPI_ARRAYS_reg',i1)") iregion_code
 
   group_size_inc = 0
-  call adios_declare_group(adios_group, group_name, "", 1, adios_err)
+  call adios_declare_group(adios_group, group_name, '', 1, adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
-  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, "", "", adios_err)
+  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, '', '', adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
@@ -1144,7 +1142,7 @@
   if (num_interfaces > 0) then
     call define_adios_scalar (adios_group, group_size_inc, region_name_scalar, STRINGIFY_VAR(max_nibool_interfaces))
     local_dim = num_interfaces_wmax
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, region_name, STRINGIFY_VAR(my_neighbours))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, region_name, STRINGIFY_VAR(my_neighbors))
     local_dim = num_interfaces_wmax
     call define_adios_global_array1D(adios_group, group_size_inc, local_dim, region_name, STRINGIFY_VAR(nibool_interfaces))
     local_dim = max_nibool_interfaces_wmax * num_interfaces_wmax
@@ -1193,7 +1191,7 @@
     !local_dim = num_interfaces_wmax
     !call write_adios_global_1d_array(file_handle_adios, myrank, sizeprocs_adios, &
                                      !local_dim, trim(region_name) // &
-                                     !STRINGIFY_VAR(my_neighbours))
+                                     !STRINGIFY_VAR(my_neighbors))
     !call write_adios_global_1d_array(file_handle_adios, myrank, sizeprocs_adios, &
                                      !local_dim,  trim(region_name) // &
                                      !STRINGIFY_VAR(nibool_interfaces))
@@ -1203,14 +1201,14 @@
                                      !local_dim, trim(region_name) // &
                                      !STRINGIFY_VAR(ibool_interfaces))
 
-    call adios_write(file_handle_adios, trim(region_name) // "my_neighbours/local_dim", &
+    call adios_write(file_handle_adios, trim(region_name) // "my_neighbors/local_dim", &
                      num_interfaces, adios_err)
-    call adios_write(file_handle_adios, trim(region_name) // "my_neighbours/global_dim", &
+    call adios_write(file_handle_adios, trim(region_name) // "my_neighbors/global_dim", &
                      num_interfaces_wmax*sizeprocs_adios, adios_err)
-    call adios_write(file_handle_adios, trim(region_name) // "my_neighbours/offset", &
+    call adios_write(file_handle_adios, trim(region_name) // "my_neighbors/offset", &
                      num_interfaces_wmax*myrank, adios_err)
-    call adios_write(file_handle_adios, trim(region_name) // "my_neighbours/array", &
-                     my_neighbours, adios_err)
+    call adios_write(file_handle_adios, trim(region_name) // "my_neighbors/array", &
+                     my_neighbors, adios_err)
 
     call adios_write(file_handle_adios, trim(region_name) // "nibool_interfaces/local_dim", &
                      num_interfaces, adios_err)
@@ -1294,7 +1292,7 @@
     HONOR_1D_SPHERICAL_MOHO
     !SAVE_BOUNDARY_MESH,HONOR_1D_SPHERICAL_MOHO,SUPPRESS_CRUSTAL_MESH
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     NSPEC2D_MOHO, NSPEC2D_400, NSPEC2D_670, &
     ibelm_moho_top,ibelm_moho_bot,ibelm_400_top,ibelm_400_bot, &
     ibelm_670_top,ibelm_670_bot,normal_moho,normal_400,normal_670, &
@@ -1338,11 +1336,11 @@
   group_name = "SPECFEM3D_GLOBE_BOUNDARY_DISC"
   group_size_inc = 0
 
-  call adios_declare_group(adios_group, group_name, "", 1, adios_err)
+  call adios_declare_group(adios_group, group_name, '', 1, adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 
-  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, "", "", adios_err)
+  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, '', '', adios_err)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,adios_err)
 

@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -33,15 +33,14 @@
   implicit none
 
   ! local parameters
+  integer :: isource,i,j,k,iglob,ispec
+  double precision :: timeval,time_t
   double precision :: stf
   real(kind=CUSTOM_REAL) :: stf_used
-  integer :: isource,i,j,k,iglob,ispec
-  double precision :: f0
+  ! for gpu
   double precision, dimension(NSOURCES) :: stf_pre_compute
-  double precision :: timeval,time_t
 
-  double precision, external :: comp_source_time_function
-  double precision, external :: comp_source_time_function_rickr
+  double precision, external :: get_stf_viscoelastic
 
   ! checks if anything to do for noise simulation
   if (NOISE_TOMOGRAPHY /= 0) return
@@ -53,89 +52,64 @@
     time_t = dble(it-1)*DT - t0
   endif
 
-
   if (.not. GPU_MODE) then
     ! on CPU
+!$OMP PARALLEL if (NSOURCES > 100) &
+!$OMP DEFAULT(SHARED) &
+!$OMP PRIVATE(isource,timeval,iglob,stf_used,stf,ispec,i,j,k)
+!$OMP DO
     do isource = 1,NSOURCES
 
       ! add only if this proc carries the source
       if (myrank == islice_selected_source(isource)) then
 
+        ispec = ispec_selected_source(isource)
+
         ! sets current time for this source
-        timeval = time_t - tshift_cmt(isource)
+        timeval = time_t - tshift_src(isource)
+
+        ! determines source time function value
+        stf = get_stf_viscoelastic(timeval,isource)
+
+        ! distinguishes between single and double precision for reals
+        stf_used = real(stf,kind=CUSTOM_REAL)
 
         ! adds source contribution
-        if (USE_FORCE_POINT_SOURCE) then
+        do k = 1,NGLLZ
+          do j = 1,NGLLY
+            do i = 1,NGLLX
+              iglob = ibool_crust_mantle(i,j,k,ispec)
 
-          ! note: for use_force_point_source xi/eta/gamma are in the range [1,NGLL*]
-          iglob = ibool_crust_mantle(nint(xi_source(isource)), &
-                         nint(eta_source(isource)), &
-                         nint(gamma_source(isource)), &
-                         ispec_selected_source(isource))
+              accel_crust_mantle(:,iglob) = accel_crust_mantle(:,iglob) &
+                + sourcearrays(:,i,j,k,isource)*stf_used
 
-          !! question from DK DK: not sure how the line below works, how can a duration be used as a frequency???
-          f0 = hdur(isource) !! using hdur as a FREQUENCY just to avoid changing CMTSOLUTION file format
-
-          ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
-          stf_used = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(timeval,f0)
-
-          ! we use a force in a single direction along one of the components:
-          !  x/y/z or E/N/Z-direction would correspond to 1/2/3 = COMPONENT_FORCE_SOURCE
-          ! e.g. nu_source(3,:) here would be a source normal to the surface (z-direction).
-          accel_crust_mantle(:,iglob) = accel_crust_mantle(:,iglob) &
-                           + sngl( nu_source(COMPONENT_FORCE_SOURCE,:,isource) ) * stf_used
-
-        else
-          ! source time function value
-          stf = comp_source_time_function(timeval,hdur_Gaussian(isource))
-
-          !     distinguish between single and double precision for reals
-          stf_used = real(stf, kind=CUSTOM_REAL)
-
-          !     add source array
-          ispec = ispec_selected_source(isource)
-          do k = 1,NGLLZ
-            do j = 1,NGLLY
-              do i = 1,NGLLX
-                iglob = ibool_crust_mantle(i,j,k,ispec)
-
-                accel_crust_mantle(:,iglob) = accel_crust_mantle(:,iglob) &
-                  + sourcearrays(:,i,j,k,isource)*stf_used
-
-              enddo
             enddo
           enddo
-
-        endif ! USE_FORCE_POINT_SOURCE
+        enddo
 
       endif
 
     enddo
+!$OMP ENDDO
+!$OMP END PARALLEL
 
   else
     ! on GPU
     ! prepares buffer with source time function values, to be copied onto GPU
-    if (USE_FORCE_POINT_SOURCE) then
-      do isource = 1,NSOURCES
-        ! sets current time for this source
-        timeval = time_t - tshift_cmt(isource)
+    do isource = 1,NSOURCES
+      ! sets current time for this source
+      timeval = time_t - tshift_src(isource)
 
-        ! source time function value
-        stf_pre_compute(isource) = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(timeval,f0)
-      enddo
-    else
-      do isource = 1,NSOURCES
-        ! sets current time for this source
-        timeval = time_t - tshift_cmt(isource)
+      ! determines source time function value
+      stf = get_stf_viscoelastic(timeval,isource)
 
-        ! source time function value
-        stf_pre_compute(isource) = comp_source_time_function(timeval,hdur_Gaussian(isource))
-      enddo
-    endif
+      ! stores current stf values
+      stf_pre_compute(isource) = stf
+    enddo
+
     ! adds sources: only implements SIMTYPE=1 and NOISE_TOM = 0
     call compute_add_sources_gpu(Mesh_pointer,NSOURCES,stf_pre_compute)
   endif
-
 
   end subroutine compute_add_sources
 
@@ -197,10 +171,10 @@
               !           corresponding iadj_vec(it) goes from
               !           iadj_vec(1) = 1000, iadj_vec(2) = 999 to iadj_vec(1000) = 1,
               !           that is, originally the idea was
-              !           adj_sourcearrays(.. iadj_vec(1) ) corresponds to adjoint source trace at time index 3000
-              !           adj_sourcearrays(.. iadj_vec(2) ) corresponds to adjoint source trace at time index 2999
+              !           source_adjoint(.. iadj_vec(1) ) corresponds to adjoint source trace at time index 3000
+              !           source_adjoint(.. iadj_vec(2) ) corresponds to adjoint source trace at time index 2999
               !           ..
-              !           adj_sourcearrays(.. iadj_vec(1000) ) corresponds to adjoint source trace at time index 2001
+              !           source_adjoint(.. iadj_vec(1000) ) corresponds to adjoint source trace at time index 2001
               !           then a new block will be read, etc, and it is going down till to adjoint source trace at time index 1
               !
               ! now comes the tricky part:
@@ -243,8 +217,8 @@
               !           assuming that until that end the backward/reconstructed wavefield and adjoint fields
               !           have a zero contribution to adjoint kernels.
               accel_crust_mantle(:,iglob) = accel_crust_mantle(:,iglob) &
-                            + adj_sourcearrays(:,i,j,k,irec_local,ivec_index)
-
+                            + source_adjoint(:,irec_local,ivec_index)*(hxir_store(irec_local,i)*&
+                                             hetar_store(irec_local,j)*hgammar_store(irec_local,k))
             enddo
           enddo
         enddo
@@ -265,13 +239,13 @@
       ! only synchronously transfers array at beginning or whenever new arrays were read in
       if (ibool_read_adj_arrays) then
         ! transfers adjoint arrays to GPU device memory
-        ! note: function call passes pointer to array adj_sourcearrays at corresponding time slice
-        call transfer_adj_to_device(Mesh_pointer,nrec,adj_sourcearrays(1,1,1,1,1,ivec_index), &
+        ! note: function call passes pointer to array source_adjoint at corresponding time slice
+        call transfer_adj_to_device(Mesh_pointer,nrec,source_adjoint(1,1,ivec_index), &
                                     islice_selected_rec)
       endif
     else
       ! synchronously transfers adjoint arrays to GPU device memory before adding adjoint sources on GPU
-      call transfer_adj_to_device(Mesh_pointer,nrec,adj_sourcearrays(1,1,1,1,1,ivec_index), &
+      call transfer_adj_to_device(Mesh_pointer,nrec,source_adjoint(1,1,ivec_index), &
                                   islice_selected_rec)
     endif
 
@@ -280,7 +254,7 @@
 
     if (GPU_ASYNC_COPY) then
       ! starts asynchronously transfer of next adjoint arrays to GPU device memory
-      ! (making sure the next adj_sourcearrays values were already read in)
+      ! (making sure the next source_adjoint values were already read in)
       if ((.not. ibool_read_adj_arrays) .and. &
           (.not. mod(it,NTSTEP_BETWEEN_READ_ADJSRC) == 0) .and. &
           (.not. it == it_end)) then
@@ -295,7 +269,7 @@
         endif
 
         ! asynchronously transfers next time slice
-        call transfer_adj_to_device_async(Mesh_pointer,nrec,adj_sourcearrays(1,1,1,1,1,ivec_index), &
+        call transfer_adj_to_device_async(Mesh_pointer,nrec,source_adjoint(1,1,ivec_index), &
                                           islice_selected_rec)
       endif
     endif
@@ -315,17 +289,15 @@
   implicit none
 
   ! local parameters
+  integer :: isource,i,j,k,iglob,ispec
+  integer :: it_tmp
+  double precision :: timeval,time_t
   double precision :: stf
   real(kind=CUSTOM_REAL) :: stf_used
-  integer :: isource,i,j,k,iglob,ispec
-  double precision :: f0
+  ! for gpu
   double precision, dimension(NSOURCES) :: stf_pre_compute
-  double precision :: timeval,time_t
 
-  double precision, external :: comp_source_time_function
-  double precision, external :: comp_source_time_function_rickr
-
-  integer :: it_tmp
+  double precision, external :: get_stf_viscoelastic
 
   ! checks if anything to do for noise simulation
   if (NOISE_TOMOGRAPHY /= 0) return
@@ -365,7 +337,7 @@
   !       the wavefields, that is b_displ( it=1) would correspond to time (NSTEP -1 - 1)*DT - t0.
   !       however, we read in the backward/reconstructed wavefields at the end of the Newmark time scheme
   !       in the first (it=1) time loop.
-  !       this leads to the timing (NSTEP-(it-1)-1)*DT-t0-tshift_cmt for the source time function here
+  !       this leads to the timing (NSTEP-(it-1)-1)*DT-t0-tshift_src for the source time function here
   !
   ! sets current initial time
   if (USE_LDDRK) then
@@ -374,7 +346,6 @@
     time_t = dble(NSTEP-it_tmp)*DT - t0
   endif
 
-
   if (.not. GPU_MODE) then
     ! on CPU
     do isource = 1,NSOURCES
@@ -382,57 +353,29 @@
       !   add the source (only if this proc carries the source)
       if (myrank == islice_selected_source(isource)) then
 
+        ispec = ispec_selected_source(isource)
+
         ! sets current time for this source
-        timeval = time_t - tshift_cmt(isource)
+        timeval = time_t - tshift_src(isource)
 
-        if (USE_FORCE_POINT_SOURCE) then
+        ! determines source time function value
+        stf = get_stf_viscoelastic(timeval,isource)
 
-           ! note: for use_force_point_source xi/eta/gamma are in the range [1,NGLL*]
-           iglob = ibool_crust_mantle(nint(xi_source(isource)), &
-                         nint(eta_source(isource)), &
-                         nint(gamma_source(isource)), &
-                         ispec_selected_source(isource))
+        ! distinguishes between single and double precision for reals
+        stf_used = real(stf,kind=CUSTOM_REAL)
 
-           !! question from DK DK: not sure how the line below works, how can a duration be used as a frequency???
-           f0 = hdur(isource) !! using hdur as a FREQUENCY just to avoid changing CMTSOLUTION file format
+        ! adds source contribution
+        do k = 1,NGLLZ
+          do j = 1,NGLLY
+            do i = 1,NGLLX
+              iglob = ibool_crust_mantle(i,j,k,ispec)
 
-           !if (it == 1 .and. myrank == 0) then
-           !   write(IMAIN,*) 'using a source of dominant frequency ',f0
-           !   write(IMAIN,*) 'lambda_S at dominant frequency = ',3000./sqrt(3.)/f0
-           !   write(IMAIN,*) 'lambda_S at highest significant frequency = ',3000./sqrt(3.)/(2.5*f0)
-           !endif
+              b_accel_crust_mantle(:,iglob) = b_accel_crust_mantle(:,iglob) &
+                + sourcearrays(:,i,j,k,isource)*stf_used
 
-           ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
-           stf_used = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(timeval,f0)
-
-           ! e.g. we use nu_source(3,:) here if we want a source normal to the surface.
-           ! note: time step is now at NSTEP-it
-           b_accel_crust_mantle(:,iglob) = b_accel_crust_mantle(:,iglob) &
-                              + sngl( nu_source(COMPONENT_FORCE_SOURCE,:,isource) ) * stf_used
-
-        else
-
-          ! see note above: time step corresponds now to NSTEP-it
-          stf = comp_source_time_function(timeval,hdur_Gaussian(isource))
-
-          !     distinguish between single and double precision for reals
-          stf_used = real(stf, kind=CUSTOM_REAL)
-
-          !     add source array
-          ispec = ispec_selected_source(isource)
-          do k = 1,NGLLZ
-            do j = 1,NGLLY
-              do i = 1,NGLLX
-                iglob = ibool_crust_mantle(i,j,k,ispec)
-
-                b_accel_crust_mantle(:,iglob) = b_accel_crust_mantle(:,iglob) &
-                  + sourcearrays(:,i,j,k,isource)*stf_used
-
-              enddo
             enddo
           enddo
-
-        endif ! USE_FORCE_POINT_SOURCE
+        enddo
 
       endif
 
@@ -441,23 +384,73 @@
   else
     ! on GPU
     ! prepares buffer with source time function values, to be copied onto GPU
-    if (USE_FORCE_POINT_SOURCE) then
-      do isource = 1,NSOURCES
-        ! sets current time for this source
-        timeval = time_t - tshift_cmt(isource)
-        ! source time function contribution
-        stf_pre_compute(isource) = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(timeval,f0)
-      enddo
-    else
-      do isource = 1,NSOURCES
-        ! sets current time for this source
-        timeval = time_t - tshift_cmt(isource)
-        ! source time function contribution
-        stf_pre_compute(isource) = comp_source_time_function(timeval,hdur_Gaussian(isource))
-      enddo
-    endif
+    do isource = 1,NSOURCES
+      ! sets current time for this source
+      timeval = time_t - tshift_src(isource)
+
+      ! determines source time function value
+      stf = get_stf_viscoelastic(timeval,isource)
+
+      ! stores current stf values
+      stf_pre_compute(isource) = stf
+    enddo
+
     ! adds sources: only implements SIMTYPE=3 (and NOISE_TOM = 0)
     call compute_add_sources_backward_gpu(Mesh_pointer,NSOURCES,stf_pre_compute)
   endif
 
   end subroutine compute_add_sources_backward
+
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+  double precision function get_stf_viscoelastic(time_source_dble,isource)
+
+! returns source time function value for specified time
+
+  use specfem_par, only: USE_FORCE_POINT_SOURCE,force_stf,hdur,hdur_Gaussian
+
+  implicit none
+
+  double precision,intent(in) :: time_source_dble
+  integer,intent(in) :: isource
+
+  ! local parameters
+  double precision :: stf,f0
+
+  double precision, external :: comp_source_time_function
+  double precision, external :: comp_source_time_function_rickr
+  double precision, external :: comp_source_time_function_gauss
+
+  ! note: calling comp_source_time_function() includes the handling for external source time functions
+
+  ! determines source time function value
+  if (USE_FORCE_POINT_SOURCE) then
+    ! single point force
+    ! single point force
+    select case(force_stf(isource))
+    case (0)
+      ! Gaussian source time function value
+      stf = comp_source_time_function_gauss(time_source_dble,hdur_Gaussian(isource))
+    case (1)
+      ! Ricker source time function
+      f0 = hdur(isource) ! using hdur as a FREQUENCY just to avoid changing FORCESOLUTION file format
+      stf = comp_source_time_function_rickr(time_source_dble,f0)
+    case (2)
+      ! Heaviside (step) source time function
+      stf = comp_source_time_function(time_source_dble,hdur_Gaussian(isource))
+    case default
+      stop 'unsupported force_stf value!'
+    end select
+  else
+    ! moment-tensor
+    ! Heaviside source time function
+    stf = comp_source_time_function(time_source_dble,hdur_Gaussian(isource))
+  endif
+
+  ! return value
+  get_stf_viscoelastic = stf
+
+  end function get_stf_viscoelastic

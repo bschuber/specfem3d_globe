@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -26,14 +26,14 @@
 !=====================================================================
 
 ! create AVS or DX 3D data for the slice, to be recombined in postprocessing
-  subroutine write_AVS_DX_global_data(myrank,prname,nspec,ibool,idoubling, &
+  subroutine write_AVS_DX_global_data(prname,nspec,ibool,idoubling, &
                  xstore,ystore,zstore,num_ibool_AVS_DX,mask_ibool,npointot)
 
   use constants
 
   implicit none
 
-  integer nspec,myrank
+  integer nspec
   integer ibool(NGLLX,NGLLY,NGLLZ,nspec)
 
   integer idoubling(nspec)

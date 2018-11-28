@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -32,7 +32,7 @@
 !--------------------------------------------------------------------------------------------------
 
 
-  subroutine model_jp1d(myrank,x,rho,vp,vs,Qkappa,Qmu,idoubling, &
+  subroutine model_jp1d(x,rho,vp,vs,Qkappa,Qmu,idoubling, &
                         check_doubling_flag,RICB,RCMB,RTOPDDOUBLEPRIME, &
                         R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST)
 
@@ -44,7 +44,7 @@
   ! speeds vp and vs, and the quality factors Qkappa and Qmu
 
   logical check_doubling_flag
-  integer idoubling,myrank
+  integer idoubling
 
   double precision x,rho,vp,vs,Qkappa,Qmu,RICB,RCMB,RTOPDDOUBLEPRIME, &
       R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST

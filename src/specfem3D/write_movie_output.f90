@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -135,7 +135,7 @@
                                 epsilondev_yz_crust_mantle)
         endif
 
-        call  write_movie_volume_strains(myrank,npoints_3dmovie, &
+        call  write_movie_volume_strains(npoints_3dmovie, &
                     LOCAL_TMP_PATH,MOVIE_VOLUME_TYPE,MOVIE_COARSE, &
                     it,NSPEC_CRUST_MANTLE_STRAIN_ONLY, &
                     eps_trace_over_3_crust_mantle, &
@@ -146,7 +146,7 @@
 
       case (2, 3)
         ! output the Time Integral of Strain, or \mu*TIS
-        call  write_movie_volume_strains(myrank,npoints_3dmovie, &
+        call  write_movie_volume_strains(npoints_3dmovie, &
                     LOCAL_TMP_PATH,MOVIE_VOLUME_TYPE,MOVIE_COARSE, &
                     it,NSPEC_CRUST_MANTLE_3DMOVIE, &
                     Ieps_trace_over_3_crust_mantle, &
@@ -176,7 +176,7 @@
                                 displ_outer_core,veloc_outer_core,accel_outer_core,Mesh_pointer)
         endif
 
-        call write_movie_volume_divcurl(myrank,it,eps_trace_over_3_crust_mantle, &
+        call write_movie_volume_divcurl(it,eps_trace_over_3_crust_mantle, &
                         div_displ_outer_core, &
                         accel_outer_core,kappavstore_outer_core,rhostore_outer_core,ibool_outer_core, &
                         eps_trace_over_3_inner_core, &
@@ -193,7 +193,7 @@
         endif
 
         scalingval = scale_displ
-        call write_movie_volume_vector(myrank,it,npoints_3dmovie, &
+        call write_movie_volume_vector(it,npoints_3dmovie, &
                                        LOCAL_TMP_PATH,MOVIE_VOLUME_TYPE,MOVIE_COARSE,ibool_crust_mantle, &
                                        displ_crust_mantle, &
                                        scalingval,mask_3dmovie,nu_3dmovie)
@@ -205,7 +205,7 @@
         endif
 
         scalingval = scale_veloc
-        call write_movie_volume_vector(myrank,it,npoints_3dmovie, &
+        call write_movie_volume_vector(it,npoints_3dmovie, &
                                        LOCAL_TMP_PATH,MOVIE_VOLUME_TYPE,MOVIE_COARSE,ibool_crust_mantle, &
                                        veloc_crust_mantle, &
                                        scalingval,mask_3dmovie,nu_3dmovie)
@@ -221,7 +221,7 @@
           call transfer_displ_oc_from_device(NGLOB_OUTER_CORE,displ_outer_core,Mesh_pointer)
         endif
 
-        call write_movie_volume_displnorm(myrank,it,LOCAL_TMP_PATH, &
+        call write_movie_volume_displnorm(it,LOCAL_TMP_PATH, &
                         displ_crust_mantle,displ_inner_core,displ_outer_core, &
                         ibool_crust_mantle,ibool_inner_core,ibool_outer_core)
 
@@ -236,7 +236,7 @@
           call transfer_veloc_oc_from_device(NGLOB_OUTER_CORE,veloc_outer_core,Mesh_pointer)
         endif
 
-        call write_movie_volume_velnorm(myrank,it,LOCAL_TMP_PATH, &
+        call write_movie_volume_velnorm(it,LOCAL_TMP_PATH, &
                         veloc_crust_mantle,veloc_inner_core,veloc_outer_core, &
                         ibool_crust_mantle,ibool_inner_core,ibool_outer_core)
 
@@ -251,7 +251,7 @@
           call transfer_accel_oc_from_device(NGLOB_OUTER_CORE,accel_outer_core,Mesh_pointer)
         endif
 
-        call write_movie_volume_accelnorm(myrank,it,LOCAL_TMP_PATH, &
+        call write_movie_volume_accelnorm(it,LOCAL_TMP_PATH, &
                         accel_crust_mantle,accel_inner_core,accel_outer_core, &
                         ibool_crust_mantle,ibool_inner_core,ibool_outer_core)
 

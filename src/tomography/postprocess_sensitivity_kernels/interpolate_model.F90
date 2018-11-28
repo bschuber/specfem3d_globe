@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -1052,10 +1052,10 @@ print *,myrank,'adios file rank',rank
   call init_adios_group(group,group_name)
 
   ! defines group size
-  call define_adios_scalar(group, group_size_inc, "", "NSPEC", nspec)
+  call define_adios_scalar(group, group_size_inc, '', "NSPEC", nspec)
   local_dim = size(model2(:,:,:,:,iker))
   do iker = 1,nparams
-    call define_adios_global_array1D(group, group_size_inc,local_dim,"",trim(fname(iker)),model2(:,:,:,:,iker))
+    call define_adios_global_array1D(group, group_size_inc,local_dim,'',trim(fname(iker)),model2(:,:,:,:,iker))
   enddo
 
   ! opens new adios model file

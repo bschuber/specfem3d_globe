@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -26,21 +26,23 @@
 !=====================================================================
 
 
-  subroutine check_mesh_resolution(iregion_code,nspec,nglob,xstore,ystore,zstore, &
+  subroutine check_mesh_resolution(iregion_code,xstore,ystore,zstore, &
                                    kappavstore,kappahstore,muvstore,muhstore,rhostore)
 
   use constants
 
-  use meshfem3D_par, only: DT,myrank,ibool, &
+  use meshfem3D_par, only: &
+    nspec,nglob, &
+    DT,myrank,ibool, &
     xstore_glob,ystore_glob,zstore_glob,SAVE_MESH_FILES, &
     ANGULAR_WIDTH_ETA_IN_DEGREES,ANGULAR_WIDTH_XI_IN_DEGREES,NEX_XI,NEX_ETA, &
     dt_max_glob,pmax_glob
 
-  use create_regions_mesh_par2, only: prname
+  use regions_mesh_par2, only: prname
 
   implicit none
 
-  integer,intent(in) :: iregion_code,nspec,nglob
+  integer,intent(in) :: iregion_code
 
   double precision,dimension(NGLLX,NGLLY,NGLLZ,nspec),intent(in) :: xstore,ystore,zstore
 
@@ -102,20 +104,27 @@
   dt_max_reg = HUGEVAL
   cmax_reg = - HUGEVAL
 
+!$OMP PARALLEL DEFAULT(PRIVATE) &
+!$OMP SHARED(nspec,nglob,iregion_code, &
+!$OMP xstore,ystore,zstore, &
+!$OMP kappavstore,kappahstore,muvstore,muhstore,rhostore, &
+!$OMP elemsize_min_reg,elemsize_max_reg,eig_ratio_min_reg,eig_ratio_max_reg, &
+!$OMP pmax_reg,dt_max_reg,cmax_reg,val_ispec_pmax,val_ispec_dt,DT)
+!$OMP DO
   do ispec = 1,nspec
 
     ! determines maximum velocities at corners of this element
-    call get_vpvs_minmax(vpmax,vsmin)
+    call get_vpvs_minmax(vpmax,vsmin,ispec,nspec,iregion_code,kappavstore,kappahstore,muvstore,muhstore,rhostore)
 
     ! computes minimum size of this grid cell
-    call get_elem_minmaxsize(elemsize_min,elemsize_max)
+    call get_elem_minmaxsize(elemsize_min,elemsize_max,ispec,nspec,xstore,ystore,zstore)
 
     ! sets region min/max
     elemsize_min_reg = min(elemsize_min_reg,elemsize_min)
     elemsize_max_reg = max(elemsize_max_reg,elemsize_max)
 
     ! gets ratio smallest/largest eigenvalue of the jacobian matrix defined for all points in this element
-    call get_eigenvalues_min_ratio(eig_ratio_min,eig_ratio_max)
+    call get_eigenvalues_min_ratio(eig_ratio_min,eig_ratio_max,ispec)
 
     eig_ratio_min_reg = min(eig_ratio_min_reg,eig_ratio_min)
     eig_ratio_max_reg = max(eig_ratio_max_reg,eig_ratio_max)
@@ -166,7 +175,7 @@
     !             B  o=====o C
     !
     ! note: this condition is usually not met for the case of our global meshes
-    ! call get_min_distance_from_second_GLL_points(dx)
+    ! call get_min_distance_from_second_GLL_points(dx,ispec,nspec,xstore,ystore,zstore)
     !if (distance_min > dx) distance_min = dx
 
     ! suggested timestep
@@ -203,6 +212,8 @@
     val_ispec_dt(ispec) = dt_max
 
   enddo ! ispec
+!$OMP ENDDO
+!$OMP END PARALLEL
 
   ! collects for all slices
   dt_max = dt_max_reg
@@ -270,6 +281,12 @@
 
   ! debug: saves element flags
   if (SAVE_MESH_FILES) then
+    ! user output
+    if (myrank == 0) then
+      write(IMAIN,*) '  saving vtk mesh files for resolution res_minimum_period...'
+      call flush_IMAIN()
+    endif
+
     ! minimum period
     filename = prname(1:len_trim(prname))//'res_minimum_period'
     call write_VTK_data_elem_cr(nspec,nglob, &
@@ -286,14 +303,24 @@
   ! free memory
   deallocate(val_ispec_pmax,val_ispec_dt)
 
-  contains
+  end subroutine check_mesh_resolution
 
-!---------------------
-  subroutine get_vpvs_minmax(vpmax,vsmin)
+!
+!--------------------------------------------------------------------------------------
+!
+
+! note: moved out subroutines of the main routine check_mesh_resolution()
+!       to be able to use OpenMP. OpenMP has problems with variables within contained subroutines...
+
+
+  subroutine get_vpvs_minmax(vpmax,vsmin,ispec,nspec,iregion_code,kappavstore,kappahstore,muvstore,muhstore,rhostore)
+
+  use constants, only: CUSTOM_REAL,NGLLX,NGLLY,NGLLZ,IREGION_CRUST_MANTLE,IREGION_INNER_CORE, &
+    PI,GRAV,RHOAV,R_EARTH,HUGEVAL,TINYVAL,FOUR_THIRDS
 
   use meshfem3D_models_par, only: ANISOTROPIC_INNER_CORE,ANISOTROPIC_3D_MANTLE
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     c11store,c12store,c13store,c14store,c15store,c16store,c22store, &
     c23store,c24store,c25store,c26store,c33store,c34store,c35store, &
     c36store,c44store,c45store,c46store,c55store,c56store,c66store
@@ -301,6 +328,9 @@
   implicit none
 
   real(kind=CUSTOM_REAL),intent(out) :: vpmax,vsmin
+  integer, intent(in) :: ispec,nspec,iregion_code
+  real(kind=CUSTOM_REAL),dimension(NGLLX,NGLLY,NGLLZ,nspec),intent(in) :: kappavstore,kappahstore, &
+    muvstore,muhstore,rhostore
 
   ! local parameters
   real(kind=CUSTOM_REAL) :: vpv,vph,vsv,vsh
@@ -369,13 +399,19 @@
 
   end subroutine get_vpvs_minmax
 
-!---------------------
+!
+!--------------------------------------------------------------------------------------
+!
 
-  subroutine get_elem_minmaxsize(elemsize_min,elemsize_max)
+  subroutine get_elem_minmaxsize(elemsize_min,elemsize_max,ispec,nspec,xstore,ystore,zstore)
+
+  use constants, only: CUSTOM_REAL,NGLLX,NGLLY,NGLLZ,R_EARTH_KM,HUGEVAL
 
   implicit none
 
   real(kind=CUSTOM_REAL),intent(out) :: elemsize_min,elemsize_max
+  integer, intent(in) :: ispec,nspec
+  double precision,dimension(NGLLX,NGLLY,NGLLZ,nspec),intent(in) :: xstore,ystore,zstore
 
   ! local parameters
   real(kind=CUSTOM_REAL) :: x1,y1,z1,x2,y2,z2,dist
@@ -446,13 +482,20 @@
 
   end subroutine get_elem_minmaxsize
 
-!---------------------
+!
+!--------------------------------------------------------------------------------------
+!
 
-  subroutine get_min_distance_from_second_GLL_points(dx)
+
+  subroutine get_min_distance_from_second_GLL_points(dx,ispec,nspec,xstore,ystore,zstore)
+
+  use constants, only: CUSTOM_REAL,NGLLX,NGLLY,NGLLZ,R_EARTH_KM,HUGEVAL
 
   implicit none
 
   real(kind=CUSTOM_REAL),intent(out) :: dx
+  integer, intent(in) :: ispec,nspec
+  double precision,dimension(NGLLX,NGLLY,NGLLZ,nspec),intent(in) :: xstore,ystore,zstore
 
   ! local parameters
   real(kind=CUSTOM_REAL) :: x1,y1,z1,x2,y2,z2,dist
@@ -616,11 +659,16 @@
 
   end subroutine get_min_distance_from_second_GLL_points
 
-!---------------------
 
-  subroutine get_eigenvalues_min_ratio(eig_ratio_min,eig_ratio_max)
+!
+!--------------------------------------------------------------------------------------
+!
 
-  use create_regions_mesh_par2, only: &
+  subroutine get_eigenvalues_min_ratio(eig_ratio_min,eig_ratio_max,ispec)
+
+  use constants, only: CUSTOM_REAL,NGLLX,NGLLY,NGLLZ,HUGEVAL
+
+  use regions_mesh_par2, only: &
     xixstore,xiystore,xizstore, &
     etaxstore,etaystore,etazstore, &
     gammaxstore,gammaystore,gammazstore
@@ -628,6 +676,7 @@
   implicit none
 
   real(kind=CUSTOM_REAL),intent(out) :: eig_ratio_min,eig_ratio_max
+  integer, intent(in) :: ispec
 
   ! local parameters
   integer :: i,j,k
@@ -703,15 +752,17 @@
 
   end subroutine get_eigenvalues_min_ratio
 
-!---------------------
+!
+!--------------------------------------------------------------------------------------
+!
 
   subroutine get_eigenvalues_sym(A,eig1,eig2,eig3)
 
-! modified to fortran from: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3.C3.973_matrices
+! modified to Fortran from: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3.C3.973_matrices
 !
 ! Smith, Oliver K. (April 1961),
 ! Eigenvalues of a symmetric 3 x 3 matrix,
-! Communications of the ACM 4 (4): 168, doi:10.1145/355578.366316
+! communications of the ACM 4 (4): 168, doi:10.1145/355578.366316
 !
 ! Given a real symmetric 3x3 matrix A, compute the eigenvalues
 !
@@ -814,10 +865,6 @@
     stop 'Invalid inaccurate eigenvalues'
   endif
 
-
-
   end subroutine get_eigenvalues_sym
 
-!---------------------
 
-  end subroutine check_mesh_resolution

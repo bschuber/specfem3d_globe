@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -69,15 +69,15 @@
 !
 
 
-  subroutine model_ak135_broadcast(myrank,CRUSTAL)
+  subroutine model_ak135_broadcast(CRUSTAL)
 
 ! standard routine to setup model
 
+  use constants, only: myrank
   use model_ak135_par
 
   implicit none
 
-  integer :: myrank
   logical :: CRUSTAL
 
   ! local parameters
@@ -85,12 +85,12 @@
 
   ! allocates model arrays
   allocate(Mak135_V_radius_ak135(NR_AK135F_NO_MUD), &
-          Mak135_V_density_ak135(NR_AK135F_NO_MUD), &
-          Mak135_V_vp_ak135(NR_AK135F_NO_MUD), &
-          Mak135_V_vs_ak135(NR_AK135F_NO_MUD), &
-          Mak135_V_Qkappa_ak135(NR_AK135F_NO_MUD), &
-          Mak135_V_Qmu_ak135(NR_AK135F_NO_MUD), &
-          stat=ier)
+           Mak135_V_density_ak135(NR_AK135F_NO_MUD), &
+           Mak135_V_vp_ak135(NR_AK135F_NO_MUD), &
+           Mak135_V_vs_ak135(NR_AK135F_NO_MUD), &
+           Mak135_V_Qkappa_ak135(NR_AK135F_NO_MUD), &
+           Mak135_V_Qmu_ak135(NR_AK135F_NO_MUD), &
+           stat=ier)
   if (ier /= 0 ) call exit_MPI(myrank,'Error allocating Mak135_V arrays')
 
   ! all processes will define same parameters
@@ -172,10 +172,10 @@
 
 ! non-dimensionalize
 ! time scaling (s^{-1}) is done with scaleval
-  scaleval=dsqrt(PI*GRAV*RHOAV)
-  rho=rho*1000.0d0/RHOAV
-  vp=vp*1000.0d0/(R_EARTH*scaleval)
-  vs=vs*1000.0d0/(R_EARTH*scaleval)
+  scaleval = dsqrt(PI*GRAV*RHOAV)
+  rho = rho*1000.0d0/RHOAV
+  vp = vp*1000.0d0/(R_EARTH*scaleval)
+  vs = vs*1000.0d0/(R_EARTH*scaleval)
 
   end subroutine model_ak135
 

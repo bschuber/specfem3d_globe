@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -40,7 +40,7 @@
 
   ! local parameters
   integer :: it_temp,seismo_current_temp
-  integer :: i,j,ier
+  integer :: ier
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: b_displ_cm_store_buffer
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: b_displ_ic_store_buffer
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: b_displ_oc_store_buffer,b_accel_oc_store_buffer
@@ -58,14 +58,14 @@
     write(IOUT_ENERGY,*) 'set logscale y'
     write(IOUT_ENERGY,*) 'set xlabel "Time step number"'
     write(IOUT_ENERGY,*) 'set ylabel "Energy (J)"'
-    write(IOUT_ENERGY,'(a152)') '#plot "energy.dat" us 1:2 t ''Kinetic Energy'' w l lc 1, "energy.dat" us 1:3 &
-                         &t ''Potential Energy'' w l lc 2, "energy.dat" us 1:4 t ''Total Energy'' w l lc 4'
+    write(IOUT_ENERGY,'(a152)') '#plot "energy.dat" us 1:2 t "Kinetic Energy" w l lc 1, "energy.dat" us 1:3 &
+                         &t "Potential Energy" w l lc 2, "energy.dat" us 1:4 t "Total Energy" w l lc 4'
     write(IOUT_ENERGY,*) '#pause -1 "Hit any key..."'
-    write(IOUT_ENERGY,*) '#plot "energy.dat" us 1:2 t ''Kinetic Energy'' w l lc 1'
+    write(IOUT_ENERGY,*) '#plot "energy.dat" us 1:2 t "Kinetic Energy" w l lc 1'
     write(IOUT_ENERGY,*) '#pause -1 "Hit any key..."'
-    write(IOUT_ENERGY,*) '#plot "energy.dat" us 1:3 t ''Potential Energy'' w l lc 2'
+    write(IOUT_ENERGY,*) '#plot "energy.dat" us 1:3 t "Potential Energy" w l lc 2'
     write(IOUT_ENERGY,*) '#pause -1 "Hit any key..."'
-    write(IOUT_ENERGY,*) 'plot "energy.dat" us 1:4 t ''Total Energy'' w l lc 4'
+    write(IOUT_ENERGY,*) 'plot "energy.dat" us 1:4 t "Total Energy" w l lc 4'
     write(IOUT_ENERGY,*) 'pause -1 "Hit any key..."'
     close(IOUT_ENERGY)
   endif
@@ -328,18 +328,32 @@
 
         ! transfers wavefields from GPU to CPU for buffering
         if (GPU_MODE) then
+#if defined(USE_CUDA) || defined(USE_OPENCL)
+          if (it_of_this_subset >= 2) then
+            call unregister_host_array(b_displ_cm_store_buffer(:,:, it_of_this_subset-1))
+          endif
+          call register_host_array(NDIM*NGLOB_CRUST_MANTLE_ADJOINT, b_displ_cm_store_buffer(:,:, it_of_this_subset))
+#endif
           ! daniel debug: check if these transfers could be made async to overlap
-          call transfer_b_displ_cm_from_device(NDIM*NGLOB_CRUST_MANTLE,b_displ_crust_mantle,Mesh_pointer)
-          call transfer_b_displ_ic_from_device(NDIM*NGLOB_INNER_CORE,b_displ_inner_core,Mesh_pointer)
-          call transfer_b_displ_oc_from_device(NGLOB_OUTER_CORE,b_displ_outer_core,Mesh_pointer)
-          call transfer_b_accel_oc_from_device(NGLOB_OUTER_CORE,b_accel_outer_core,Mesh_pointer)
+          call transfer_ofs_b_displ_cm_from_device(NDIM*NGLOB_CRUST_MANTLE_ADJOINT,it_of_this_subset, &
+                                                   b_displ_cm_store_buffer,Mesh_pointer)
+          call transfer_ofs_b_displ_ic_from_device(NDIM*NGLOB_INNER_CORE_ADJOINT,it_of_this_subset, &
+                                                   b_displ_ic_store_buffer,Mesh_pointer)
+          call transfer_ofs_b_displ_oc_from_device(NGLOB_OUTER_CORE_ADJOINT,it_of_this_subset, &
+                                                   b_displ_oc_store_buffer,Mesh_pointer)
+          call transfer_ofs_b_accel_oc_from_device(NGLOB_OUTER_CORE_ADJOINT,it_of_this_subset, &
+                                                   b_accel_oc_store_buffer,Mesh_pointer)
+        else
+          ! stores wavefield in buffers
+! only the displacement needs to be stored in memory buffers in order to compute the sensitivity kernels,
+! not the memory variables R_ij, because the sensitivity kernel calculations only involve the displacement
+! and the strain, not the stress, and the strain can be recomputed on the fly by computing the gradient
+! of the displacement read back from the memory buffers (see also https://github.com/geodynamics/specfem3d_globe/issues/194)
+          b_displ_cm_store_buffer(:,:,it_of_this_subset) = b_displ_crust_mantle(:,:)
+          b_displ_oc_store_buffer(:,it_of_this_subset) = b_displ_outer_core(:)
+          b_accel_oc_store_buffer(:,it_of_this_subset) = b_accel_outer_core(:)
+          b_displ_ic_store_buffer(:,:,it_of_this_subset) = b_displ_inner_core(:,:)
         endif
-
-        ! stores wavefield in buffers
-        b_displ_cm_store_buffer(:,:,it_of_this_subset) = b_displ_crust_mantle(:,:)
-        b_displ_oc_store_buffer(:,it_of_this_subset) = b_displ_outer_core(:)
-        b_accel_oc_store_buffer(:,it_of_this_subset) = b_accel_outer_core(:)
-        b_displ_ic_store_buffer(:,:,it_of_this_subset) = b_displ_inner_core(:,:)
 
         ! for noise kernel
         if (NOISE_TOMOGRAPHY == 3) then
@@ -360,35 +374,31 @@
         ! reads backward/reconstructed wavefield from buffers
         ! note: uses wavefield at corresponding time (NSTEP - it + 1 ), i.e. we have now time-reversed wavefields
         ! crust/mantle
-        do j = 1,NGLOB_CRUST_MANTLE_ADJOINT
-          do i = 1, NDIM
-            b_displ_crust_mantle(i,j) = b_displ_cm_store_buffer(i,j,it_subset_end-it_of_this_subset+1)
-          enddo
-        enddo
-        ! outer core
-        do j = 1,NGLOB_OUTER_CORE_ADJOINT
-            b_displ_outer_core(j) = b_displ_oc_store_buffer(j,it_subset_end-it_of_this_subset+1)
-            b_accel_outer_core(j) = b_accel_oc_store_buffer(j,it_subset_end-it_of_this_subset+1)
-        enddo
-        ! inner core
-        do j = 1,NGLOB_INNER_CORE_ADJOINT
-          do i = 1, NDIM
-            b_displ_inner_core(i,j) = b_displ_ic_store_buffer(i,j,it_subset_end-it_of_this_subset+1)
-          enddo
-        enddo
+        ! transfers wavefields from CPU to GPU
+        if (GPU_MODE) then
+          ! daniel debug: check if these transfers could be made async to overlap
+           call transfer_ofs_b_displ_cm_to_device(NDIM*NGLOB_CRUST_MANTLE_ADJOINT,it_subset_end-it_of_this_subset+1, &
+                                                  b_displ_cm_store_buffer,Mesh_pointer)
+           call transfer_ofs_b_displ_ic_to_device(NDIM*NGLOB_INNER_CORE_ADJOINT,it_subset_end-it_of_this_subset+1, &
+                                                  b_displ_ic_store_buffer,Mesh_pointer)
+          call transfer_ofs_b_displ_oc_to_device(NGLOB_OUTER_CORE_ADJOINT,it_subset_end-it_of_this_subset+1, &
+                                                 b_displ_oc_store_buffer,Mesh_pointer)
+          call transfer_ofs_b_accel_oc_to_device(NGLOB_OUTER_CORE_ADJOINT,it_subset_end-it_of_this_subset+1, &
+                                                 b_accel_oc_store_buffer,Mesh_pointer)
+        else
+! only the displacement needs to be stored in memory buffers in order to compute the sensitivity kernels,
+! not the memory variables R_ij, because the sensitivity kernel calculations only involve the displacement
+! and the strain, not the stress, and the strain can be recomputed on the fly by computing the gradient
+! of the displacement read back from the memory buffers (see also https://github.com/geodynamics/specfem3d_globe/issues/194)
+          b_displ_crust_mantle(:,:) = b_displ_cm_store_buffer(:,:,it_subset_end-it_of_this_subset+1)
+          b_displ_outer_core(:) = b_displ_oc_store_buffer(:,it_subset_end-it_of_this_subset+1)
+          b_accel_outer_core(:) = b_accel_oc_store_buffer(:,it_subset_end-it_of_this_subset+1)
+          b_displ_inner_core(:,:) = b_displ_ic_store_buffer(:,:,it_subset_end-it_of_this_subset+1)
+        endif
 
         ! for noise kernel
         if (NOISE_TOMOGRAPHY == 3) then
           noise_surface_movie(:,:,:,:) = b_noise_surface_movie_buffer(:,:,:,:,it_subset_end-it_of_this_subset+1)
-        endif
-
-        ! transfers wavefields from CPU to GPU
-        if (GPU_MODE) then
-          ! daniel debug: check if these transfers could be made async to overlap
-          call transfer_b_displ_cm_to_device(NDIM*NGLOB_CRUST_MANTLE,b_displ_crust_mantle,Mesh_pointer)
-          call transfer_b_displ_ic_to_device(NDIM*NGLOB_INNER_CORE,b_displ_inner_core,Mesh_pointer)
-          call transfer_b_displ_oc_to_device(NGLOB_OUTER_CORE,b_displ_outer_core,Mesh_pointer)
-          call transfer_b_accel_oc_to_device(NGLOB_OUTER_CORE,b_accel_outer_core,Mesh_pointer)
         endif
 
         it = it + 1
@@ -418,12 +428,21 @@
           call compute_forces_viscoelastic()
 
         enddo ! istage
-
+#if defined(USE_CUDA) || defined(USE_OPENCL)
+        if (GPU_MODE) then
+          call unregister_host_array(b_displ_cm_store_buffer(:,:, it_subset_end-it_of_this_subset+1))
+          if (it_of_this_subset /= it_subset_end) then
+            call register_host_array(NDIM*NGLOB_CRUST_MANTLE_ADJOINT, &
+                                     b_displ_cm_store_buffer(:,:, it_subset_end-it_of_this_subset))
+          endif
+        endif
+#endif
         ! write the seismograms with time shift
         call write_seismograms()
 
         ! kernel computation
         ! adjoint simulations: kernels
+        ! attention: for GPU_MODE and ANISOTROPIC_KL it is necessary to use resort_array (see lines 442-445)
         call compute_kernels()
 
       enddo ! subset loop
@@ -436,6 +455,12 @@
   enddo   ! end of main time loop
 
  100 continue
+
+
+  if (SIMULATION_TYPE == 3 .and. GPU_MODE) then
+    ! attention: cijkl_kl_crust_mantle is sorted differently on GPU and CPU
+    call resort_array(Mesh_pointer)
+  endif
 
   ! frees undo_attenuation buffers
   if (SIMULATION_TYPE == 3) then

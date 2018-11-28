@@ -12,7 +12,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -127,7 +127,7 @@ void moclEnqueueFillBuffer (cl_mem *buffer, int val, size_t size_byte) {
 /*----------------------------------------------------------------------------------------------- */
 
 // copies integer array from CPU host to GPU device
-void gpuCreateCopy_todevice_int (gpu_int_mem *d_array_addr_ptr, int *h_array, int size) {
+void gpuCreateCopy_todevice_int (gpu_int_mem *d_array_addr_ptr, int *h_array, size_t size) {
 
   TRACE ("gpuCreateCopy_todevice_int");
 
@@ -165,7 +165,7 @@ void gpuCreateCopy_todevice_int (gpu_int_mem *d_array_addr_ptr, int *h_array, in
 /*----------------------------------------------------------------------------------------------- */
 
 // copies real array from CPU host to GPU device
-void gpuCreateCopy_todevice_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_array, int size) {
+void gpuCreateCopy_todevice_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_array, size_t size) {
 
   TRACE ("gpuCreateCopy_todevice_realw");
 
@@ -195,7 +195,7 @@ void gpuCreateCopy_todevice_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_arr
 /*----------------------------------------------------------------------------------------------- */
 
 // copies real array from CPU host to GPU device
-void gpuCopy_todevice_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_array, int size) {
+void gpuCopy_todevice_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_array, size_t size) {
 
   TRACE ("gpuCopy_todevice_realw");
 
@@ -215,10 +215,61 @@ void gpuCopy_todevice_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_array, in
 #endif
 }
 
+void gpuCopy_todevice_realw_offset (gpu_realw_mem *d_array_addr_ptr, realw *h_array, size_t size, size_t offset) {
+
+  TRACE ("gpuCopy_todevice_realw");
+
+  // copies memory on from CPU to GPU
+  // uses blocking copies
+#ifdef USE_OPENCL
+  if (run_opencl) {
+    // copies values onto GPU
+    clCheck (clEnqueueWriteBuffer (mocl.command_queue, d_array_addr_ptr->ocl, CL_TRUE, 0, size * sizeof (realw), &h_array[size*(offset-1)], 0, NULL, NULL));
+  }
+#endif
+#ifdef USE_CUDA
+  if (run_cuda) {
+    // copies values onto GPU
+    print_CUDA_error_if_any(cudaMemcpy((realw*) d_array_addr_ptr->cuda,&h_array[size*(offset-1)],size*sizeof(realw),cudaMemcpyHostToDevice),22003);
+  }
+#endif
+}
+
+/*----------------------------------------------------------------------------------------------- */
+
+// (un)register CPU host real array
+
+void gpuRegisterHost_realw ( realw *h_array, const size_t size) {
+
+  TRACE ("gpuRegisterHost_realw");
+
+  // register host memory
+#ifdef USE_OPENCL
+//TODO
+#endif
+#ifdef USE_CUDA
+  print_CUDA_error_if_any(cudaHostRegister(h_array, size*sizeof(realw), 0),55001);
+#endif
+}
+
+void gpuUnregisterHost_realw ( realw *h_array) {
+
+  TRACE ("gpuUnregisterHost_realw");
+
+  // unregister host memory
+#ifdef USE_OPENCL
+//TODO
+#endif
+#ifdef USE_CUDA
+  print_CUDA_error_if_any(cudaHostUnregister(h_array),55002);
+#endif
+}
+
+
 /*----------------------------------------------------------------------------------------------- */
 
 // copies double array from CPU host to GPU device
-void gpuCopy_todevice_double (gpu_double_mem *d_array_addr_ptr, double *h_array, int size) {
+void gpuCopy_todevice_double (gpu_double_mem *d_array_addr_ptr, double *h_array, size_t size) {
 
   TRACE ("gpuCopy_todevice_double");
 
@@ -241,7 +292,7 @@ void gpuCopy_todevice_double (gpu_double_mem *d_array_addr_ptr, double *h_array,
 /*----------------------------------------------------------------------------------------------- */
 
 // copies integer array from CPU host to GPU device
-void gpuCopy_todevice_int (gpu_int_mem *d_array_addr_ptr, int *h_array, int size) {
+void gpuCopy_todevice_int (gpu_int_mem *d_array_addr_ptr, int *h_array, size_t size) {
 
   TRACE ("gpuCopy_todevice_int");
 
@@ -264,7 +315,7 @@ void gpuCopy_todevice_int (gpu_int_mem *d_array_addr_ptr, int *h_array, int size
 /* ----------------------------------------------------------------------------------------------- */
 
 // copies array from GPU to CPU
-void gpuCopy_from_device_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_array, int size) {
+void gpuCopy_from_device_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_array, size_t size) {
 
   TRACE ("gpuCopy_from_device_realw");
 
@@ -283,11 +334,29 @@ void gpuCopy_from_device_realw (gpu_realw_mem *d_array_addr_ptr, realw *h_array,
 #endif
 }
 
+void gpuCopy_from_device_realw_offset (gpu_realw_mem *d_array_addr_ptr, realw *h_array, size_t size, size_t offset) {
+
+  TRACE ("gpuCopy_from_device_realw");
+
+  // copies memory from GPU back to CPU
+#ifdef USE_OPENCL
+  if (run_opencl) {
+    // blocking copy
+    clCheck (clEnqueueReadBuffer (mocl.command_queue, d_array_addr_ptr->ocl, CL_TRUE, 0, sizeof (realw) * size, &h_array[size*(offset-1)], 0, NULL, NULL));
+  }
+#endif
+#ifdef USE_CUDA
+  if (run_cuda) {
+    // note: cudaMemcpy implicitly synchronizes all other cuda operations
+    print_CUDA_error_if_any(cudaMemcpy(&h_array[size*(offset-1)],d_array_addr_ptr->cuda, sizeof(realw)*size, cudaMemcpyDeviceToHost),33001);
+  }
+#endif
+}
 
 /* ----------------------------------------------------------------------------------------------- */
 
 // creates real array on GPU
-void gpuMalloc_realw (gpu_realw_mem *buffer, int size) {
+void gpuMalloc_realw (gpu_realw_mem *buffer, size_t size) {
 
   TRACE ("gpuMalloc_realw");
 
@@ -308,7 +377,7 @@ void gpuMalloc_realw (gpu_realw_mem *buffer, int size) {
 /* ----------------------------------------------------------------------------------------------- */
 
 // creates double array on GPU
-void gpuMalloc_double (gpu_double_mem *buffer, int size) {
+void gpuMalloc_double (gpu_double_mem *buffer, size_t size) {
 
   TRACE ("gpuMalloc_double");
 
@@ -329,7 +398,7 @@ void gpuMalloc_double (gpu_double_mem *buffer, int size) {
 /* ----------------------------------------------------------------------------------------------- */
 
 // creates double array on GPU
-void gpuMalloc_int (gpu_int_mem *buffer, int size) {
+void gpuMalloc_int (gpu_int_mem *buffer, size_t size) {
 
   TRACE ("gpuMalloc_int");
 
@@ -350,7 +419,7 @@ void gpuMalloc_int (gpu_int_mem *buffer, int size) {
 /* ----------------------------------------------------------------------------------------------- */
 
 // creates double array on GPU
-void gpuMemset_realw (gpu_realw_mem *buffer, int size, int value) {
+void gpuMemset_realw (gpu_realw_mem *buffer, size_t size, int value) {
 
   TRACE ("gpuMemset_realw");
 

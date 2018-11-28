@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -105,7 +105,7 @@ program combine_vol_data
 #endif
 
 #ifdef ADIOS_INPUT
-  integer :: sizeprocs,myrank
+  integer :: sizeprocs
   character(len=MAX_STRING_LEN) :: var_name, value_file_name, mesh_file_name
   integer(kind=8) :: value_handle, mesh_handle
 #else
@@ -647,7 +647,7 @@ program combine_vol_data
     do i = 1,np
       write(IOUT_VTK,'(3e18.6)') total_dat_xyz(1,i),total_dat_xyz(2,i),total_dat_xyz(3,i)
     enddo
-    write(IOUT_VTK,*) ""
+    write(IOUT_VTK,*) ''
 
     ! cells
     ! note: indices for VTK start at 0
@@ -656,12 +656,12 @@ program combine_vol_data
       write(IOUT_VTK,'(9i12)') 8,total_dat_con(1,i),total_dat_con(2,i),total_dat_con(3,i),total_dat_con(4,i), &
                             total_dat_con(5,i),total_dat_con(6,i),total_dat_con(7,i),total_dat_con(8,i)
     enddo
-    write(IOUT_VTK,*) ""
+    write(IOUT_VTK,*) ''
     ! VTK
     ! type: hexahedrons
     write(IOUT_VTK,'(a,i12)') "CELL_TYPES ",ne
     write(IOUT_VTK,'(6i12)') (12,it = 1,ne)
-    write(IOUT_VTK,*) ""
+    write(IOUT_VTK,*) ''
 
     write(IOUT_VTK,'(a,i12)') "POINT_DATA ",np
     write(IOUT_VTK,'(a)') "SCALARS "//trim(filename)//" float"
@@ -669,7 +669,7 @@ program combine_vol_data
     do i = 1,np
         write(IOUT_VTK,*) total_dat(i)
     enddo
-    write(IOUT_VTK,*) ""
+    write(IOUT_VTK,*) ''
     close(IOUT_VTK)
 
     ! free arrays for this region

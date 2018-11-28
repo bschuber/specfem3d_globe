@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -26,12 +26,12 @@
 !=====================================================================
 
 
-  subroutine write_AVS_DX_output(nspec,npointot,iregion_code)
+  subroutine write_AVS_DX_output(npointot,iregion_code)
 
   use meshfem3d_par, only: &
-    ibool,idoubling, &
+    nspec,ibool,idoubling, &
     xstore,ystore,zstore, &
-    myrank,NGLLX,NGLLY,NGLLZ, &
+    NGLLX,NGLLY,NGLLZ, &
     RICB,RCMB,RTOPDDOUBLEPRIME,R600,R670,R220,R771,R400,R120,R80,RMOHO, &
     RMIDDLE_CRUST,ROCEAN, &
     ADIOS_FOR_AVS_DX
@@ -41,7 +41,7 @@
     ELLIPTICITY,ISOTROPIC_3D_MANTLE, &
     nspl,rspl,espl,espl2
 
-  use create_regions_mesh_par2
+  use regions_mesh_par2
 
   ! Modules for temporary AVS/DX data
 !  use AVS_DX_global_mod
@@ -49,7 +49,7 @@
   implicit none
 
   ! number of spectral elements in each block
-  integer,intent(in) :: nspec,npointot,iregion_code
+  integer,intent(in) :: npointot,iregion_code
 
   ! local parameters
   ! arrays used for AVS or DX files
@@ -65,27 +65,27 @@
   if (ier /= 0) stop 'Error in allocate 21'
 
   if (ADIOS_FOR_AVS_DX) then
-    call write_AVS_DX_output_adios(nspec,npointot,iregion_code, &
+    call write_AVS_DX_output_adios(npointot,iregion_code, &
                                    num_ibool_AVS_DX, mask_ibool)
   else
-    call write_AVS_DX_global_data(myrank,prname,nspec,ibool,idoubling, &
+    call write_AVS_DX_global_data(prname,nspec,ibool,idoubling, &
         xstore,ystore,zstore, num_ibool_AVS_DX,mask_ibool,npointot)
 
-    call write_AVS_DX_global_faces_data(myrank,prname,nspec,iMPIcut_xi, &
+    call write_AVS_DX_global_faces_data(prname,nspec,iMPIcut_xi, &
         iMPIcut_eta,ibool, idoubling,xstore,ystore,zstore,num_ibool_AVS_DX, &
         mask_ibool,npointot, rhostore,kappavstore,muvstore,nspl,rspl, &
         espl,espl2, ELLIPTICITY,ISOTROPIC_3D_MANTLE, RICB,RCMB, &
         RTOPDDOUBLEPRIME,R600,R670,R220,R771,R400,R120,R80,RMOHO, &
         RMIDDLE_CRUST,ROCEAN,iregion_code)
 
-    call write_AVS_DX_global_chunks_data(myrank,prname,nspec,iboun,ibool, &
+    call write_AVS_DX_global_chunks_data(prname,nspec,iboun,ibool, &
             idoubling,xstore,ystore,zstore,num_ibool_AVS_DX,mask_ibool, &
             npointot,rhostore,kappavstore,muvstore,nspl,rspl,espl,espl2, &
             ELLIPTICITY,ISOTROPIC_3D_MANTLE, &
             RICB,RCMB,RTOPDDOUBLEPRIME,R600,R670,R220,R771,R400,R120,R80,RMOHO, &
             RMIDDLE_CRUST,ROCEAN,iregion_code)
 
-    call write_AVS_DX_surface_data(myrank,prname,nspec,iboun,ibool, &
+    call write_AVS_DX_surface_data(prname,nspec,iboun,ibool, &
             idoubling,xstore,ystore,zstore,num_ibool_AVS_DX,mask_ibool,npointot, &
             rhostore,kappavstore,muvstore,nspl,rspl,espl,espl2, &
             ELLIPTICITY,ISOTROPIC_3D_MANTLE, &

@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -26,12 +26,12 @@
 !=====================================================================
 
 
-  subroutine prepare_openmp()
+  subroutine init_openmp()
 
 ! outputs OpenMP support info
 
 #ifdef USE_OPENMP
-  use specfem_par, only: myrank,IMAIN,USE_DEVILLE_PRODUCTS_VAL
+  use constants, only: myrank,IMAIN
 #endif
 
   implicit none
@@ -46,48 +46,42 @@
   integer,external :: OMP_GET_NUM_PROCS,OMP_GET_MAX_THREADS
   logical,external :: OMP_GET_DYNAMIC,OMP_GET_NESTED
 
-  ! OpenMP only supported for Deville routine
-  if (USE_DEVILLE_PRODUCTS_VAL) then
-
 !$OMP PARALLEL DEFAULT(NONE) &
 !$OMP SHARED(myrank) &
 !$OMP PRIVATE(thread_id,num_threads,num_procs,max_threads,is_dynamic,is_nested)
-    ! gets thread number
-    thread_id = OMP_GET_THREAD_NUM()
+  ! gets thread number
+  thread_id = OMP_GET_THREAD_NUM()
 
-    ! gets total number of threads for this MPI process
-    num_threads = OMP_GET_NUM_THREADS()
+  ! gets total number of threads for this MPI process
+  num_threads = OMP_GET_NUM_THREADS()
 
-    ! OpenMP master thread only
-    if (thread_id == 0) then
-      ! gets additional environment info
-      num_procs = OMP_GET_NUM_PROCS()
-      max_threads = OMP_GET_MAX_THREADS()
-      is_dynamic = OMP_GET_DYNAMIC()
-      is_nested = OMP_GET_NESTED()
+  ! OpenMP master thread only
+  if (thread_id == 0) then
+    ! gets additional environment info
+    num_procs = OMP_GET_NUM_PROCS()
+    max_threads = OMP_GET_MAX_THREADS()
+    is_dynamic = OMP_GET_DYNAMIC()
+    is_nested = OMP_GET_NESTED()
 
-      ! user output
-      if (myrank == 0) then
-        write(IMAIN,*)
-        write(IMAIN,*) 'OpenMP information:'
-        write(IMAIN,*) '  number of threads (per MPI process) = ', num_threads
-        write(IMAIN,*)
-        write(IMAIN,*) '  number of processors available      = ', num_procs
-        write(IMAIN,*) '  maximum number of threads available = ', num_procs
-        write(IMAIN,*) '  dynamic thread adjustement          = ', is_dynamic
-        write(IMAIN,*) '  nested parallelism                  = ', is_nested
-        write(IMAIN,*)
-        call flush_IMAIN()
-      endif
+    ! user output
+    if (myrank == 0) then
+      write(IMAIN,*) 'OpenMP information:'
+      write(IMAIN,*) '  number of threads (per MPI process) = ', num_threads
+      write(IMAIN,*)
+      write(IMAIN,*) '  number of processors available      = ', num_procs
+      write(IMAIN,*) '  maximum number of threads available = ', num_procs
+      write(IMAIN,*) '  dynamic thread adjustement          = ', is_dynamic
+      write(IMAIN,*) '  nested parallelism                  = ', is_nested
+      write(IMAIN,*)
+      call flush_IMAIN()
     endif
-!$OMP END PARALLEL
-
   endif
+!$OMP END PARALLEL
 
 #else
   ! nothing to do..
   return
 #endif
 
-  end subroutine prepare_openmp
+  end subroutine init_openmp
 

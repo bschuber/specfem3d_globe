@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -388,7 +388,7 @@
 !
 ! PORTABILITY
 !
-! This subroutine is written in standard FORTRAN 90.
+! This subroutine is written in standard Fortran 90.
 ! It calls no external functions or subroutines and should run
 ! without problem on any computer having a 32-bit word or longer.
 !

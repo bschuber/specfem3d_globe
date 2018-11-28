@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -69,7 +69,7 @@
 !--------------------------------------------------------------------------------------------------
 !
 
-  subroutine model_crust_2_0_broadcast(myrank)
+  subroutine model_crust_2_0_broadcast()
 
 ! standard routine to setup model
 
@@ -78,7 +78,6 @@
 
   implicit none
 
-  integer :: myrank
   integer :: ier
 
   ! allocate crustal arrays
@@ -140,7 +139,7 @@
 
   ! gets smoothed structure
   call crust_2_0_CAPsmoothed(lat,lon,vps,vss,rhos,thicks,abbreviation, &
-                        code,crust_thickness,crust_vp,crust_vs,crust_rho)
+                             code,crust_thickness,crust_vp,crust_vs,crust_rho)
 
   ! note: for seismic wave propagation in general we ignore the water and ice sheets (oceans are re-added later as an ocean load)
   ! note: but for gravity integral calculations we include the ice
@@ -456,12 +455,12 @@
 
   subroutine hash_crustal_type(crustaltype, ihash)
 
-    implicit none
+  implicit none
 
-    character(len=2), intent(in) :: crustaltype
-    integer, intent(out) :: ihash
+  character(len=2), intent(in) :: crustaltype
+  integer, intent(out) :: ihash
 
-    ihash = iachar(crustaltype(1:1)) + 128*iachar(crustaltype(2:2)) + 1
+  ihash = iachar(crustaltype(1:1)) + 128*iachar(crustaltype(2:2)) + 1
 
   end subroutine hash_crustal_type
 
@@ -487,10 +486,10 @@
 
   ! set vp,vs and rho for all layers
   do i = 1,CRUST_NP
-    vptyp(i)=crust_vp(i,ikey)
-    vstyp(i)=crust_vs(i,ikey)
-    rhtyp(i)=crust_rho(i,ikey)
-    thtp(i)=crust_thickness(i,ikey)
+    vptyp(i) = crust_vp(i,ikey)
+    vstyp(i) = crust_vs(i,ikey)
+    rhtyp(i) = crust_rho(i,ikey)
+    thtp(i)  = crust_thickness(i,ikey)
   enddo
 
   ! get distance to Moho from the bottom of the ocean or the ice

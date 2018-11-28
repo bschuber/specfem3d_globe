@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -43,7 +43,7 @@ module AVS_DX_surface_mod
 contains
 
 subroutine define_AVS_DX_surfaces_data_adios(adios_group, &
-                                             myrank,nspec,iboun, &
+                                             nspec,iboun, &
                                              ibool,mask_ibool,npointot, &
                                              ISOTROPIC_3D_MANTLE, &
                                              group_size_inc, avs_dx_adios)
@@ -56,7 +56,7 @@ subroutine define_AVS_DX_surfaces_data_adios(adios_group, &
 
   integer(kind=8), intent(in) :: adios_group
 
-  integer :: nspec,myrank
+  integer :: nspec
 
   logical :: iboun(6,nspec)
   integer :: ibool(NGLLX,NGLLY,NGLLZ,nspec)
@@ -131,24 +131,24 @@ subroutine define_AVS_DX_surfaces_data_adios(adios_group, &
 
   !--- Variables for '...AVS_DXpointschunk.txt'
   call define_adios_global_array1D(adios_group, group_size_inc, npoin, &
-                                   "", "points_surfaces/x_value", dummy_real1d)
+                                   '', "points_surfaces/x_value", dummy_real1d)
   call define_adios_global_array1D(adios_group, group_size_inc, npoin, &
-                                   "", "points_surfaces/y_value", dummy_real1d)
+                                   '', "points_surfaces/y_value", dummy_real1d)
   call define_adios_global_array1D(adios_group, group_size_inc, npoin, &
-                                   "", "points_surfaces/z_value", dummy_real1d)
+                                   '', "points_surfaces/z_value", dummy_real1d)
 
   !--- Variables for '...AVS_DXpointschunk.txt'
   call define_adios_global_array1D(adios_group, group_size_inc, nspecface, &
-                                   "", "elements_surfaces/idoubling", dummy_int1d)
+                                   '', "elements_surfaces/idoubling", dummy_int1d)
 
   call define_adios_global_array1D(adios_group, group_size_inc, nspecface, &
-                                   "", "elements_surfaces/num_ibool_AVS_DX_iglob1", dummy_int1d)
+                                   '', "elements_surfaces/num_ibool_AVS_DX_iglob1", dummy_int1d)
   call define_adios_global_array1D(adios_group, group_size_inc, nspecface, &
-                                   "", "elements_surfaces/num_ibool_AVS_DX_iglob2", dummy_int1d)
+                                   '', "elements_surfaces/num_ibool_AVS_DX_iglob2", dummy_int1d)
   call define_adios_global_array1D(adios_group, group_size_inc, nspecface, &
-                                   "", "elements_surfaces/num_ibool_AVS_DX_iglob3", dummy_int1d)
+                                   '', "elements_surfaces/num_ibool_AVS_DX_iglob3", dummy_int1d)
   call define_adios_global_array1D(adios_group, group_size_inc, nspecface, &
-                                   "", "elements_surfaces/num_ibool_AVS_DX_iglob4", dummy_int1d)
+                                   '', "elements_surfaces/num_ibool_AVS_DX_iglob4", dummy_int1d)
 
   !--- Variables for AVS_DXelementschunks_dvp_dvs.txt
   if (ISOTROPIC_3D_MANTLE) then
@@ -157,16 +157,16 @@ subroutine define_AVS_DX_surfaces_data_adios(adios_group, &
     allocate(avs_dx_adios%dvs(nspecface), stat=ierr)
     if (ierr /= 0) call exit_MPI(myrank, "Error allocating dvs.")
     call define_adios_global_array1D(adios_group, group_size_inc, nspecface, &
-                                     "", "elements_surfaces/dvp", dummy_real1d)
+                                     '', "elements_surfaces/dvp", dummy_real1d)
     call define_adios_global_array1D(adios_group, group_size_inc, nspecface, &
-                                     "", "elements_surfaces/dvs", dummy_real1d)
+                                     '', "elements_surfaces/dvs", dummy_real1d)
   endif
 
 end subroutine define_AVS_DX_surfaces_data_adios
 
 !===============================================================================
 
-  subroutine prepare_AVS_DX_surfaces_data_adios(myrank,nspec,iboun, &
+  subroutine prepare_AVS_DX_surfaces_data_adios(nspec,iboun, &
                                                 ibool,idoubling,xstore,ystore,zstore,num_ibool_AVS_DX,mask_ibool,npointot, &
                                                 rhostore,kappavstore,muvstore,nspl,rspl,espl,espl2, &
                                                 ELLIPTICITY,ISOTROPIC_3D_MANTLE, &
@@ -178,7 +178,7 @@ end subroutine define_AVS_DX_surfaces_data_adios
 
   implicit none
 
-  integer nspec,myrank
+  integer nspec
   integer ibool(NGLLX,NGLLY,NGLLZ,nspec)
 
   integer idoubling(nspec)
@@ -356,7 +356,7 @@ end subroutine define_AVS_DX_surfaces_data_adios
                 endif
 
                 ! gets reference model values: rho,vpv,vph,vsv,vsh and eta_aniso
-                call meshfem3D_models_get1D_val(myrank,iregion_code, &
+                call meshfem3D_models_get1D_val(iregion_code, &
                                                 idoubling(ispec), &
                                                 r,rho,vpv,vph,vsv,vsh,eta_aniso, &
                                                 Qkappa,Qmu,RICB,RCMB, &

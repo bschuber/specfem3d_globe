@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -27,8 +27,10 @@
 
   subroutine setup_color_perm(iregion_code)
 
+  use constants, only: myrank
+
   use meshfem3D_par, only: &
-    myrank,IMAIN,USE_MESH_COLORING_GPU,SAVE_MESH_FILES, &
+    IMAIN,USE_MESH_COLORING_GPU,SAVE_MESH_FILES, &
     IREGION_CRUST_MANTLE,IREGION_OUTER_CORE,IREGION_INNER_CORE
 
   use meshfem3D_par, only: ibool,is_on_a_slice_edge
@@ -76,7 +78,7 @@
       if (ier /= 0 ) call exit_mpi(myrank,'Error allocating temporary perm crust mantle array')
       perm(:) = 0
 
-      call setup_color(myrank,nspec,nglob,ibool,perm, &
+      call setup_color(nspec,nglob,ibool,perm, &
                       idomain,is_on_a_slice_edge, &
                       num_phase_ispec_crust_mantle,phase_ispec_inner_crust_mantle, &
                       SAVE_MESH_FILES)
@@ -92,7 +94,7 @@
       if (myrank == 0) then
         write(IMAIN,*) '     mesh permutation:'
       endif
-      call setup_permutation(myrank,nspec,nglob,ibool, &
+      call setup_permutation(nspec,nglob,ibool, &
                             idomain,perm, &
                             num_colors_outer_crust_mantle,num_colors_inner_crust_mantle, &
                             num_elem_colors_crust_mantle, &
@@ -128,7 +130,7 @@
       if (ier /= 0 ) call exit_mpi(myrank,'Error allocating temporary perm outer_core array')
       perm(:) = 0
 
-      call setup_color(myrank,nspec,nglob,ibool,perm, &
+      call setup_color(nspec,nglob,ibool,perm, &
                       idomain,is_on_a_slice_edge, &
                       num_phase_ispec_outer_core,phase_ispec_inner_outer_core, &
                       SAVE_MESH_FILES)
@@ -144,7 +146,7 @@
       if (myrank == 0) then
         write(IMAIN,*) '     mesh permutation:'
       endif
-      call setup_permutation(myrank,nspec,nglob,ibool, &
+      call setup_permutation(nspec,nglob,ibool, &
                             idomain,perm, &
                             num_colors_outer_outer_core,num_colors_inner_outer_core, &
                             num_elem_colors_outer_core, &
@@ -180,7 +182,7 @@
       if (ier /= 0 ) call exit_mpi(myrank,'Error allocating temporary perm inner_core array')
       perm(:) = 0
 
-      call setup_color(myrank,nspec,nglob,ibool,perm, &
+      call setup_color(nspec,nglob,ibool,perm, &
                       idomain,is_on_a_slice_edge, &
                       num_phase_ispec_inner_core,phase_ispec_inner_inner_core, &
                       SAVE_MESH_FILES)
@@ -199,7 +201,7 @@
       if (myrank == 0) then
         write(IMAIN,*) '     mesh permutation:'
       endif
-      call setup_permutation(myrank,nspec,nglob,ibool, &
+      call setup_permutation(nspec,nglob,ibool, &
                             idomain,perm, &
                             num_colors_outer_inner_core,num_colors_inner_inner_core, &
                             num_elem_colors_inner_core, &
@@ -221,12 +223,14 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine setup_color(myrank,nspec,nglob,ibool,perm, &
+  subroutine setup_color(nspec,nglob,ibool,perm, &
                             idomain,is_on_a_slice_edge, &
                             num_phase_ispec_d,phase_ispec_inner_d, &
                             SAVE_MESH_FILES)
 
 ! sets up mesh coloring
+
+  use constants, only: myrank
 
   use meshfem3D_par, only: &
     LOCAL_PATH,MAX_NUMBER_OF_COLORS,IMAIN,NGLLX,NGLLY,NGLLZ,IFLAG_IN_FICTITIOUS_CUBE, &
@@ -246,7 +250,7 @@
 
   implicit none
 
-  integer :: myrank,nspec,nglob
+  integer :: nspec,nglob
   integer, dimension(NGLLX,NGLLY,NGLLZ,nspec) :: ibool
 
   integer, dimension(nspec) :: perm
@@ -330,8 +334,7 @@
                             nspec,nglob, &
                             nb_colors_outer_elements,nb_colors_inner_elements, &
                             nspec_outer,nspec_inner,nspec_domain, &
-                            first_elem_number_in_this_color, &
-                            myrank)
+                            first_elem_number_in_this_color)
 
   ! debug: file output
   if (SAVE_MESH_FILES .and. DEBUG .and. idomain == IREGION_CRUST_MANTLE) then
@@ -586,7 +589,7 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine setup_permutation(myrank,nspec,nglob,ibool, &
+  subroutine setup_permutation(nspec,nglob,ibool, &
                               idomain,perm, &
                               num_colors_outer,num_colors_inner, &
                               num_elem_colors, &
@@ -606,7 +609,7 @@
     NCHUNKS,NSPEC2D_TOP,NSPEC2D_BOTTOM, &
     xstore,ystore,zstore,idoubling,xstore_glob,ystore_glob,zstore_glob
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     xixstore,xiystore,xizstore,etaxstore,etaystore,etazstore, &
     gammaxstore,gammaystore,gammazstore, &
     rhostore,dvpstore,kappavstore,kappahstore,muvstore,muhstore,eta_anisostore, &
@@ -627,7 +630,7 @@
 
   implicit none
 
-  integer,intent(in) :: myrank,nspec,nglob
+  integer,intent(in) :: nspec,nglob
   integer, dimension(NGLLX,NGLLY,NGLLZ,nspec) :: ibool
 
   integer,intent(in) :: idomain
@@ -1001,7 +1004,7 @@
 
 ! deprecated ...
 !
-!  subroutine setup_color_perm(myrank,iregion_code,nspec,nglob, &
+!  subroutine setup_color_perm(iregion_code,nspec,nglob, &
 !                              ibool,is_on_a_slice_edge,prname, &
 !                              npoin2D_xi,npoin2D_eta)
 !
@@ -1009,7 +1012,6 @@
 !  use meshfem3D_par, only: NSTEP,DT,NPROC_XI,NPROC_ETA
 !  implicit none
 !
-!  integer :: myrank
 !  integer :: iregion_code
 !
 !  integer :: nspec,nglob
@@ -1047,7 +1049,7 @@
 !
 !    call get_perm_color_faster(is_on_a_slice_edge,ibool,perm,nspec,nglob, &
 !                              nb_colors_outer_elements,nb_colors_inner_elements,nspec_outer, &
-!                              first_elem_number_in_this_color,myrank)
+!                              first_elem_number_in_this_color)
 !
 !    ! for the last color, the next color is fictitious and its first (fictitious) element number is nspec + 1
 !    first_elem_number_in_this_color(nb_colors_outer_elements + nb_colors_inner_elements + 1) = nspec + 1

@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -79,100 +79,100 @@
 
       ! outputs transverse isotropic kernels only
       if (SAVE_TRANSVERSE_KL_ONLY) then
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "alphav_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "alphah_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "betav_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "betah_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "eta_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "rho_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "bulk_c_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "bulk_betav_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "bulk_betah_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "alpha_kl_crust_mantle", dummy_real4d)
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(beta_kl_crust_mantle))
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "bulk_beta_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "alphav_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "alphah_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "betav_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "betah_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "eta_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "rho_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "bulk_c_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "bulk_betav_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "bulk_betah_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "alpha_kl_crust_mantle", dummy_real4d)
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(beta_kl_crust_mantle))
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "bulk_beta_kl_crust_mantle", dummy_real4d)
 
       else
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(rho_kl_crust_mantle))
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(rho_kl_crust_mantle))
         local_dim = 21 * NGLLX * NGLLY * NGLLZ * NSPEC_CRUST_MANTLE_ADJOINT
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(cijkl_kl_crust_mantle))
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(cijkl_kl_crust_mantle))
       endif
 
     else
 
       ! isotropic kernels
       local_dim = NGLLX * NGLLY * NGLLZ * NSPEC_CRUST_MANTLE_ADJOINT
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "rhonotprime_kl_crust_mantle", dummy_real4d)
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "kappa_kl_crust_mantle", dummy_real4d)
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "mu_kl_crust_mantle", dummy_real4d)
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(rho_kl_crust_mantle))
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(alpha_kl_crust_mantle))
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(beta_kl_crust_mantle))
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "bulk_c_kl_crust_mantle", dummy_real4d)
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", "bulk_beta_kl_crust_mantle", dummy_real4d)
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "rhonotprime_kl_crust_mantle", dummy_real4d)
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "kappa_kl_crust_mantle", dummy_real4d)
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "mu_kl_crust_mantle", dummy_real4d)
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(rho_kl_crust_mantle))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(alpha_kl_crust_mantle))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(beta_kl_crust_mantle))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "bulk_c_kl_crust_mantle", dummy_real4d)
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', "bulk_beta_kl_crust_mantle", dummy_real4d)
     endif
 
     ! noise strength kernel
     if (NOISE_TOMOGRAPHY == 3) then
       local_dim = NGLLX * NGLLY * NGLLZ * NSPEC_CRUST_MANTLE_ADJOINT
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(sigma_kl_crust_mantle))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(sigma_kl_crust_mantle))
     endif
 
     ! outer core
     local_dim = NSPEC_OUTER_CORE * NGLLX * NGLLY * NGLLZ
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(rho_kl_outer_core))
-      call define_adios_global_array1D(adios_group, group_size_inc,local_dim, "", STRINGIFY_VAR(alpha_kl_outer_core))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(rho_kl_outer_core))
+      call define_adios_global_array1D(adios_group, group_size_inc,local_dim, '', STRINGIFY_VAR(alpha_kl_outer_core))
     if (deviatoric_outercore) then
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(beta_kl_outer_core))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(beta_kl_outer_core))
     endif
 
     ! inner core
     local_dim = NSPEC_INNER_CORE * NGLLX * NGLLY * NGLLZ
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(rho_kl_inner_core))
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(alpha_kl_inner_core))
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(beta_kl_inner_core))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(rho_kl_inner_core))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(alpha_kl_inner_core))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(beta_kl_inner_core))
 
     ! boundary kernel
     if (SAVE_BOUNDARY_MESH) then
       !call save_kernels_boundary_kl()
       if (.not. SUPPRESS_CRUSTAL_MESH .and. HONOR_1D_SPHERICAL_MOHO) then
         local_dim = NSPEC2D_MOHO * NGLLX * NGLLY * NDIM
-        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(moho_kl))
+        call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(moho_kl))
       endif
       local_dim = NSPEC2D_400 * NGLLX * NGLLY
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(d400_kl))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(d400_kl))
 
       local_dim = NSPEC2D_670 * NGLLX * NGLLY
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(d670_kl))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(d670_kl))
 
       local_dim = NSPEC2D_CMB * NGLLX * NGLLY
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(cmb_kl))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(cmb_kl))
 
       local_dim = NSPEC2D_ICB * NGLLX * NGLLY
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(icb_kl))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(icb_kl))
     endif
 
     ! approximate Hessian
     if (APPROXIMATE_HESS_KL) then
       !call save_kernels_Hessian()
       local_dim = NSPEC_CRUST_MANTLE_ADJOINT* NGLLX * NGLLY * NGLLZ
-      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(hess_kl_crust_mantle))
+      call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(hess_kl_crust_mantle))
     endif
   endif
 
   ! save source derivatives for adjoint simulations
   if (SIMULATION_TYPE == 2 .and. nrec_local > 0) then
     local_dim = 3 * 3 * nrec_local
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(moment_der))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(moment_der))
 
     local_dim = 3 * nrec_local
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(sloc_der))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(sloc_der))
 
     local_dim = nrec_local
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(stshift_der))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(stshift_der))
 
     local_dim = nrec_local
-    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, "", STRINGIFY_VAR(shdur_der))
+    call define_adios_global_array1D(adios_group, group_size_inc, local_dim, '', STRINGIFY_VAR(shdur_der))
   endif
 
   ! Open the handle to file containing all the ADIOS variables

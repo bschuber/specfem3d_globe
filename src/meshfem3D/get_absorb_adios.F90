@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -36,7 +36,6 @@
 !===============================================================================
 !> \brief Write Stacey boundary conditions to a single file using ADIOS
 !!
-!! \param myrank The MPI rank of the current process
 !! \param iregion The region the absorbing condition is written for. Check
 !!                constant.h files to see what these regions are.
 !! \param nimin An array to be written
@@ -52,7 +51,7 @@
 !!
 !! \note This routine only call adios to write the file to disk, Note that he
 !!       necessary data preparation is done by the get_absorb() routine.
-  subroutine get_absorb_adios(myrank, iregion, &
+  subroutine get_absorb_adios(iregion, &
                               nimin, nimax, njmin, njmax, nkmin_xi, nkmin_eta, &
                               NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX)
 
@@ -66,7 +65,6 @@
   ! Stacey, define flags for absorbing boundaries
   implicit none
 
-  integer :: myrank
   integer :: iregion
   integer :: NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX
 

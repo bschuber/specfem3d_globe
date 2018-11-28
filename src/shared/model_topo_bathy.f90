@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -33,15 +33,13 @@
 ! by default (constants.h), it uses a smoothed ETOPO 4 dataset
 !--------------------------------------------------------------------------------------------------
 
-  subroutine model_topo_bathy_broadcast(myrank,ibathy_topo,LOCAL_PATH)
+  subroutine model_topo_bathy_broadcast(ibathy_topo,LOCAL_PATH)
 
 ! standard routine to setup model
 
-  use constants
+  use constants, only: myrank,NX_BATHY,NY_BATHY,MAX_STRING_LEN,IMAIN,GRAVITY_INTEGRALS
 
   implicit none
-
-  integer :: myrank
 
   ! bathymetry and topography: use integer array to store values
   integer, dimension(NX_BATHY,NY_BATHY) :: ibathy_topo
@@ -85,9 +83,9 @@
   integer, dimension(NX_BATHY,NY_BATHY) :: ibathy_topo
 
   ! local parameters
-  integer(kind=8) :: filesize
-  integer(kind=2) :: ival
-  integer :: indx,itopo_x,itopo_y
+  integer(kind=8) :: filesize   ! 8-bytes / 64-bits
+  integer(kind=2) :: ival       ! 2-bytes / 16-bits
+  integer :: indx,itopo_x,itopo_y,itmp
   logical :: byteswap
   integer(kind=2) :: HEADER_IS_BYTE_SWAPPED
   data HEADER_IS_BYTE_SWAPPED/z'3412'/
@@ -107,7 +105,12 @@
       indx = indx + 1
       call read_abs(10, ival, 2, indx)
       if (byteswap) then
-        ival = ishftc(ival, 8, 16)
+        ! note: ibm's xlf compiler warns about ishftc() with integer(2) input. ival should have type integer.
+        !       other compilers would use iishift for integer(2) types.
+        !ival = ishftc(ival, 8, 16)
+        ! work-around
+        itmp = ival
+        ival = ishftc(itmp, 8, 16)
       endif
 
       ! checks values
@@ -276,16 +279,16 @@
   ! convert integer value to double precision
   !  value = dble(ibathy_topo(iel1,iadd1))
 
-  lon_corner=iel1*samples_per_degree_topo
-  lat_corner=90.d0-iadd1*samples_per_degree_topo
+  lon_corner = iel1 * samples_per_degree_topo
+  lat_corner = 90.d0 - iadd1 * samples_per_degree_topo
 
   ratio_lon = (xlo-lon_corner)/samples_per_degree_topo
   ratio_lat = (xlat-lat_corner)/samples_per_degree_topo
 
-  if (ratio_lon < 0.0) ratio_lon=0.0
-  if (ratio_lon > 1.0) ratio_lon=1.0
-  if (ratio_lat < 0.0) ratio_lat=0.0
-  if (ratio_lat > 1.0) ratio_lat=1.0
+  if (ratio_lon < 0.0) ratio_lon = 0.0
+  if (ratio_lon > 1.0) ratio_lon = 1.0
+  if (ratio_lat < 0.0) ratio_lat = 0.0
+  if (ratio_lat > 1.0) ratio_lat = 1.0
 
   ! convert integer value to double precision
   if (iadd1 <= NY_BATHY-1 .and. iel1 <= NX_BATHY-1) then

@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -25,7 +25,7 @@
 !
 !=====================================================================
 
-  subroutine add_topography_cmb(myrank,xelm,yelm,zelm)
+  subroutine add_topography_cmb(xelm,yelm,zelm)
 
 ! this is only a placeholder function, which is not used yet...user must supply the subtopo_cmb() routine
 
@@ -33,8 +33,6 @@
   use meshfem3D_par, only: RTOPDDOUBLEPRIME,RCMB
 
   implicit none
-
-  integer,intent(in) :: myrank
 
   double precision,intent(inout) :: xelm(NGNOD)
   double precision,intent(inout) :: yelm(NGNOD)
@@ -70,7 +68,7 @@
     topocmb = -topocmb / R_EARTH_KM
 
     ! start stretching a distance RTOPDDOUBLEPRIME - RCMB below the CMB
-    ! and finish at RTOPDDOUBLEPRIME (D'')
+    ! and finish at RTOPDDOUBLEPRIME of D_double_prime
     r_start = (RCMB - (RTOPDDOUBLEPRIME - RCMB))/R_EARTH
     gamma = 0.0d0
     if (r >= RCMB/R_EARTH .and. r <= RTOPDDOUBLEPRIME/R_EARTH) then

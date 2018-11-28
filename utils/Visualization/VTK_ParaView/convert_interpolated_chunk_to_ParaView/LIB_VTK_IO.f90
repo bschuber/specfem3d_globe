@@ -31,10 +31,10 @@
 !!\end{epigraphs}
 !!\lettrine[lines=2,loversize=-.1,lraise=0.2]{{\bf L}}{IB\_VTK\_IO} is a Fortran library to write and read
 !!(actually only to write) data conforming the VTK standard both binary and ascii. Even though there are many
-!!wrappers/porting of the VTK source code (C++ code), there is not a fortran one. This library is not a porting
-!!or a wrapper of the VTK code, but it only an exporter/importer of the VTK data format written in pure fortran
-!!language (standard Fortran 95 with some extensions of non standard Fortran 2003) that can be used by fortran
-!!coders (yes, there are still a lot of these brave coders...) without mixing fortran with C++ language.
+!!wrappers/porting of the VTK source code (C++ code), there is not a Fortran one. This library is not a porting
+!!or a wrapper of the VTK code, but it only an exporter/importer of the VTK data format written in pure Fortran
+!!language (standard Fortran 95 with some extensions of non standard Fortran 2003) that can be used by Fortran
+!!coders (yes, there are still a lot of these brave coders...) without mixing Fortran with C++ language.
 !!
 !!The library is still in developing and testing, this is first usable release, but there are not all the features
 !!of the stable release (the importer is totaly absent and the exporter is not complete). Surely there are a lot of
@@ -67,14 +67,14 @@
 !!
 !!\section*{LIB\_VTK\_IO}
 !!\label{sec:LIB_VTK_IO}
-!!Even though the VTK toolkit is written in C++ and so it is possible to use it in mixed fortran/c++ code this is not the easiest
+!!Even though the VTK toolkit is written in C++ and so it is possible to use it in mixed Fortran/c++ code this is not the easiest
 !!way. Fortran is still the best language for high performance computing for scientific purpose, like CFD computing. It necessary a
-!!tool to deal with VTK standard directly by fortran code. The library \LIBVTKIO was made to fill this empty: it is a simple
-!!fortran module able to export native fortran data into VTK data format and to import VTK data into a fortran code (actually this
+!!tool to deal with VTK standard directly by Fortran code. The library \LIBVTKIO was made to fill this empty: it is a simple
+!!Fortran module able to export native Fortran data into VTK data format and to import VTK data into a Fortran code (actually this
 !!feature is missing), both in ascii and binary file format.
 !!
 !!The library provides an automatic way to deal with VTK data format: all the formatting processes is nested into the library and
-!!the users comunicate with it by a simple API passing only native fortran data (native fortran scalar, vector and matrix).
+!!the users comunicate with it by a simple API passing only native Fortran data (native Fortran scalar, vector and matrix).
 !!
 !!The library \LIBVTKIO is distribuited under the GNU GPL v3 license (see appendix \ref{cap:GPL}). Beyond to the source code there
 !!are some precompiled binaries for GNU-Linux (amd x86, amd x86\_64, intel x86, intel x86\_64) and WindowsXP (amd x86, intel x86).
@@ -112,9 +112,9 @@
 !!\end{boxred}
 !!
 !!The only relevant news in the v0.2 version is about this guide: now the guide is integrated in the code. The code has particular
-!!comments: if the code is processed by the program FortranDOC\footnote{FortranDOC is an open-source fortran code available at:
-!!\href{http://stefano.zaghi.googlepages.com/fortrandoc}{http://stefano.zaghi.googlepages.com/fortrandoc}. This code processing a
-!!free-format fortran code generates a corresponding pretty-latex documentation file of the code structure.} a latex source of
+!!comments: if the code is processed by the program FortranDOC\footnote{FortranDOC is an open-source Fortran code available at:
+!!\href{http://stefano.zaghi.googlepages.com/Fortrandoc}{http://stefano.zaghi.googlepages.com/Fortrandoc}. This code processing a
+!!free-format Fortran code generates a corresponding pretty-latex documentation file of the code structure.} a latex source of
 !!this guide will be made; compiling the latex file with \virgo{pdflatex} you will obtain this guide in PDF.
 !!
 !!\section*{Version v0.1}
@@ -139,7 +139,7 @@
 !!VTK. Therefore in order to create binary files that are compatible whit VTK standard the only way is to use a non-standard 95
 !!instructions. At today only Fortran 2003 can create C-binary file, but there are not any compilers that completely implement this
 !!standard. In the next year (2008) maybe a new minor upgrade of Fortran standard (unofficial named Fortran 2008) will be born
-!!and so the support to Fortran 2003/2008 probably will be improved. Luckily we need to use only some features of fortran 2003
+!!and so the support to Fortran 2003/2008 probably will be improved. Luckily we need to use only some features of Fortran 2003
 !!that are supported by many compilers.
 !!
 !!The Fortran 2003 instructions are focused on the opening of the binary file, in particular in the functions
@@ -182,7 +182,7 @@
 !!\label{sec:CompileLinux}
 !!
 !!\LIBVTKIO can be compiled as a stand-alone library or it can be integrated directly in your code. It is a self-contained module
-!!that can be safely included into others fortran codes. There are no any advices for compile \LIBVTKIO excluding the above non
+!!that can be safely included into others Fortran codes. There are no any advices for compile \LIBVTKIO excluding the above non
 !!standard instructions.
 !!
 !!For the GNU/Linux users there is available a makefile already set to compile \LIBVTKIO both as static and dynamic library with
@@ -327,7 +327,7 @@
 !!\label{part:LIBVTKIO API}
 module LIB_VTK_IO
 !----------------------------------------------------------------------------------------------------------------------------------
-!!\LIBVTKIO is a library of functions for Input and Output pure fortran data (both ascii and binary) in VTK format.
+!!\LIBVTKIO is a library of functions for Input and Output pure Fortran data (both ascii and binary) in VTK format.
 !!
 !!The VTK standard can be separated into two main catagories: the \MaiuscolettoBS{VTK Legacy Standard} and the
 !!\MaiuscolettoBS{VTK XML Standard}. The latter is more powerful and will has a stronger support from VTk comunity than legacy
@@ -3882,17 +3882,17 @@ endmodule LIB_VTK_IO
 !!\label{cap:kind precision}
 !!
 !!\lettrine[lines=2,loversize=-.1,lraise=0.2]{{\bf F}}{ortran} is the most popular programming language for scientific computing.
-!!With fortran it is quite simple obtain fast code and manage large multidimensional array. Because fortran permits the achivment
+!!With Fortran it is quite simple obtain fast code and manage large multidimensional array. Because Fortran permits the achivment
 !!of high performance it is also used on great range of different computer-architettures, and often on the fastest supercomputer
-!!in the world. Therefore fortran programs must be \MaiuscolettoBS{portable}: portability means that the code will give the same
+!!in the world. Therefore Fortran programs must be \MaiuscolettoBS{portable}: portability means that the code will give the same
 !!results on every different computer-architettures. One of the most important goal of the numeric code is to control the
 !!\MaiuscolettoBS{the numeric error} due to finite precision of numerical operations. Fortran uses the \MaiuscolettoBS{IEEE
 !!rappresentations}; integers and reals (floating point) are represented with a finite precision. So when the code computes an
 !!operation it has a \MaiuscolettoBS{trunction error} due to the truncation of the numerical finite rappresentaions. For numerical
 !!and more in general scientific applications this source of errors must be controlled. The programmer must know which is the
-!!precision associated to the code variables. Before the standard fortran 90/95 there are not any way to select the precision of
+!!precision associated to the code variables. Before the standard Fortran 90/95 there are not any way to select the precision of
 !!the numerical variables in a portable fashion. With the possibility to specify a kind parameter for variables, the standard
-!!fortran 90/95 makes avaible two useful functions to select the kind precision of integers and reals:
+!!Fortran 90/95 makes avaible two useful functions to select the kind precision of integers and reals:
 !!
 !!\begin{boxred}{selected\_real\_kind \& selected\_int\_kind}
 !!\begin{verbatim}
@@ -3952,7 +3952,7 @@ endmodule LIB_VTK_IO
 !!\lettrine[lines=2,loversize=-.1,lraise=0.2]{{\bf F}}{ortran} is not an \MaiuscolettoBS{object oriented} (OOp) programming
 !!language. It is a procedural language with some of the the goals (ineritance, user-definited data type, polimorphism...)
 !!of OOp. Fortran most important aim is to ensure the performance of the code not its \virgo{friendliness}... Despite its
-!!nature, fortran 90/95 makes avaible some interesting features: it permits the dynamic dispatching of functions and
+!!nature, Fortran 90/95 makes avaible some interesting features: it permits the dynamic dispatching of functions and
 !!subroutine ensuring the best performance. This goal is achived with use of $interface$ construct. In the \LIBVTKIO there are,
 !!at today, 4 interface blocks:
 !!
@@ -4009,7 +4009,7 @@ endmodule LIB_VTK_IO
 !!
 !!By the interface construct \LIBVTKIO has a more simple API. The user deals with a few functions without non-sense-long-name...
 !!Dynamic dispatching is not the magic wand to solve all problems but it is an useful tool to simplify the code API. It is
-!!not powerful as the C++ template, but it is a \MaiuscolettoBS{quantum-leap} for fortran programmers.
+!!not powerful as the C++ template, but it is a \MaiuscolettoBS{quantum-leap} for Fortran programmers.
 !!
 !!\chapter{Known Bugs}
 !!\label{cap:BUG}
@@ -4017,7 +4017,7 @@ endmodule LIB_VTK_IO
 !!\lettrine[lines=2,loversize=-.1,lraise=0.2]{{\bf T}}{he} \LIBVTKIO is a very young project and it is a good example of wrong
 !!programming style... It is unstable and not tested. It is used by only one user (... me of course!) and there are a lot of
 !!bugs that are still hidden. At the moment several features are missing (the input functions and the poly-data topology...),
-!!but it is useful to export fortran data to VTK standard, and this goal was the most important for me.
+!!but it is useful to export Fortran data to VTK standard, and this goal was the most important for me.
 !!
 !!At today only one main bug was found. Fortran allows the automatic reshape of arrays: as an example 2D array can be
 !!automatically (in the function calling) transformed  to a 1D array with the same number of element of 2D array. The use of
@@ -4126,35 +4126,35 @@ endmodule LIB_VTK_IO
 !!
 !!\item Definitions.
 !!
-!!``This License'' refers to version 3 of the GNU General Public License.
+!!``This License" refers to version 3 of the GNU General Public License.
 !!
-!!``Copyright'' also means copyright-like laws that apply to other kinds of
+!!``Copyright" also means copyright-like laws that apply to other kinds of
 !!works, such as semiconductor masks.
 !!
-!!``The Program'' refers to any copyrightable work licensed under this
-!!License.  Each licensee is addressed as ``you''.  ``Licensees'' and
-!!``recipients'' may be individuals or organizations.
+!!``The Program" refers to any copyrightable work licensed under this
+!!License.  Each licensee is addressed as ``you".  ``Licensees" and
+!!``recipients" may be individuals or organizations.
 !!
-!!To ``modify'' a work means to copy from or adapt all or part of the work
+!!To ``modify" a work means to copy from or adapt all or part of the work
 !!in a fashion requiring copyright permission, other than the making of an
-!!exact copy.  The resulting work is called a ``modified version'' of the
-!!earlier work or a work ``based on'' the earlier work.
+!!exact copy.  The resulting work is called a ``modified version" of the
+!!earlier work or a work ``based on" the earlier work.
 !!
-!!A ``covered work'' means either the unmodified Program or a work based
+!!A ``covered work" means either the unmodified Program or a work based
 !!on the Program.
 !!
-!!To ``propagate'' a work means to do anything with it that, without
+!!To ``propagate" a work means to do anything with it that, without
 !!permission, would make you directly or secondarily liable for
 !!infringement under applicable copyright law, except executing it on a
 !!computer or modifying a private copy.  Propagation includes copying,
 !!distribution (with or without modification), making available to the
 !!public, and in some countries other activities as well.
 !!
-!!To ``convey'' a work means any kind of propagation that enables other
+!!To ``convey" a work means any kind of propagation that enables other
 !!parties to make or receive copies.  Mere interaction with a user through
 !!a computer network, with no transfer of a copy, is not conveying.
 !!
-!!An interactive user interface displays ``Appropriate Legal Notices''
+!!An interactive user interface displays ``Appropriate Legal Notices"
 !!to the extent that it includes a convenient and prominently visible
 !!feature that (1) displays an appropriate copyright notice, and (2)
 !!tells the user that there is no warranty for the work (except to the
@@ -4165,27 +4165,27 @@ endmodule LIB_VTK_IO
 !!
 !!\item Source Code.
 !!
-!!The ``source code'' for a work means the preferred form of the work
-!!for making modifications to it.  ``Object code'' means any non-source
+!!The ``source code" for a work means the preferred form of the work
+!!for making modifications to it.  ``Object code" means any non-source
 !!form of a work.
 !!
-!!A ``Standard Interface'' means an interface that either is an official
+!!A ``Standard Interface" means an interface that either is an official
 !!standard defined by a recognized standards body, or, in the case of
 !!interfaces specified for a particular programming language, one that
 !!is widely used among developers working in that language.
 !!
-!!The ``System Libraries'' of an executable work include anything, other
+!!The ``System Libraries" of an executable work include anything, other
 !!than the work as a whole, that (a) is included in the normal form of
 !!packaging a Major Component, but which is not part of that Major
 !!Component, and (b) serves only to enable use of the work with that
 !!Major Component, or to implement a Standard Interface for which an
 !!implementation is available to the public in source code form.  A
-!!``Major Component'', in this context, means a major essential component
+!!``Major Component", in this context, means a major essential component
 !!(kernel, window system, and so on) of the specific operating system
 !!(if any) on which the executable work runs, or a compiler used to
 !!produce the work, or an object code interpreter used to run it.
 !!
-!!The ``Corresponding Source'' for a work in object code form means all
+!!The ``Corresponding Source" for a work in object code form means all
 !!the source code needed to generate, install, and (for an executable
 !!work) run the object code and to modify the work, including scripts to
 !!control those activities.  However, it does not include the work's
@@ -4271,7 +4271,7 @@ endmodule LIB_VTK_IO
 !!  \item The work must carry prominent notices stating that it is
 !!  released under this License and any conditions added under section
 !!  7.  This requirement modifies the requirement in section 4 to
-!!  ``keep intact all notices''.
+!!  ``keep intact all notices".
 !!
 !!  \item You must license the entire work, as a whole, under this
 !!  License to anyone who comes into possession of a copy.  This
@@ -4290,7 +4290,7 @@ endmodule LIB_VTK_IO
 !!works, which are not by their nature extensions of the covered work,
 !!and which are not combined with it such as to form a larger program,
 !!in or on a volume of a storage or distribution medium, is called an
-!!``aggregate'' if the compilation and its resulting copyright are not
+!!``aggregate" if the compilation and its resulting copyright are not
 !!used to limit the access or legal rights of the compilation's users
 !!beyond what the individual works permit.  Inclusion of a covered work
 !!in an aggregate does not cause this License to apply to the other
@@ -4349,12 +4349,12 @@ endmodule LIB_VTK_IO
 !!from the Corresponding Source as a System Library, need not be
 !!included in conveying the object code work.
 !!
-!!A ``User Product'' is either (1) a ``consumer product'', which means any
+!!A ``User Product" is either (1) a ``consumer product", which means any
 !!tangible personal property which is normally used for personal, family,
 !!or household purposes, or (2) anything designed or sold for incorporation
 !!into a dwelling.  In determining whether a product is a consumer product,
 !!doubtful cases shall be resolved in favor of coverage.  For a particular
-!!product received by a particular user, ``normally used'' refers to a
+!!product received by a particular user, ``normally used" refers to a
 !!typical or common use of that class of product, regardless of the status
 !!of the particular user or of the way in which the particular user
 !!actually uses, or expects or is expected to use, the product.  A product
@@ -4362,7 +4362,7 @@ endmodule LIB_VTK_IO
 !!commercial, industrial or non-consumer uses, unless such uses represent
 !!the only significant mode of use of the product.
 !!
-!!``Installation Information'' for a User Product means any methods,
+!!``Installation Information" for a User Product means any methods,
 !!procedures, authorization keys, or other information required to install
 !!and execute modified versions of a covered work in that User Product from
 !!a modified version of its Corresponding Source.  The information must
@@ -4397,7 +4397,7 @@ endmodule LIB_VTK_IO
 !!
 !!\item Additional Terms.
 !!
-!!``Additional permissions'' are terms that supplement the terms of this
+!!``Additional permissions" are terms that supplement the terms of this
 !!License by making exceptions from one or more of its conditions.
 !!Additional permissions that are applicable to the entire Program shall
 !!be treated as though they were included in this License, to the extent
@@ -4442,7 +4442,7 @@ endmodule LIB_VTK_IO
 !!  \end{enumerate}
 !!
 !!All other non-permissive additional terms are considered ``further
-!!restrictions'' within the meaning of section 10.  If the Program as you
+!!restrictions" within the meaning of section 10.  If the Program as you
 !!received it, or any part of it, contains a notice stating that it is
 !!governed by this License along with a term that is a further
 !!restriction, you may remove that term.  If a license document contains
@@ -4506,7 +4506,7 @@ endmodule LIB_VTK_IO
 !!propagate that work, subject to this License.  You are not responsible
 !!for enforcing compliance by third parties with this License.
 !!
-!!An ``entity transaction'' is a transaction transferring control of an
+!!An ``entity transaction" is a transaction transferring control of an
 !!organization, or substantially all assets of one, or subdividing an
 !!organization, or merging organizations.  If propagation of a covered
 !!work results from an entity transaction, each party to that
@@ -4526,17 +4526,17 @@ endmodule LIB_VTK_IO
 !!
 !!\item Patents.
 !!
-!!A ``contributor'' is a copyright holder who authorizes use under this
+!!A ``contributor" is a copyright holder who authorizes use under this
 !!License of the Program or a work on which the Program is based.  The
-!!work thus licensed is called the contributor's ``contributor version''.
+!!work thus licensed is called the contributor's ``contributor version".
 !!
-!!A contributor's ``essential patent claims'' are all patent claims
+!!A contributor's ``essential patent claims" are all patent claims
 !!owned or controlled by the contributor, whether already acquired or
 !!hereafter acquired, that would be infringed by some manner, permitted
 !!by this License, of making, using, or selling its contributor version,
 !!but do not include claims that would be infringed only as a
 !!consequence of further modification of the contributor version.  For
-!!purposes of this definition, ``control'' includes the right to grant
+!!purposes of this definition, ``control" includes the right to grant
 !!patent sublicenses in a manner consistent with the requirements of
 !!this License.
 !!
@@ -4545,10 +4545,10 @@ endmodule LIB_VTK_IO
 !!make, use, sell, offer for sale, import and otherwise run, modify and
 !!propagate the contents of its contributor version.
 !!
-!!In the following three paragraphs, a ``patent license'' is any express
+!!In the following three paragraphs, a ``patent license" is any express
 !!agreement or commitment, however denominated, not to enforce a patent
 !!(such as an express permission to practice a patent or covenant not to
-!!sue for patent infringement).  To ``grant'' such a patent license to a
+!!sue for patent infringement).  To ``grant" such a patent license to a
 !!party means to make such an agreement or commitment not to enforce a
 !!patent against the party.
 !!
@@ -4560,7 +4560,7 @@ endmodule LIB_VTK_IO
 !!available, or (2) arrange to deprive yourself of the benefit of the
 !!patent license for this particular work, or (3) arrange, in a manner
 !!consistent with the requirements of this License, to extend the patent
-!!license to downstream recipients.  ``Knowingly relying'' means you have
+!!license to downstream recipients.  ``Knowingly relying" means you have
 !!actual knowledge that, but for the patent license, your conveying the
 !!covered work in a country, or your recipient's use of the covered work
 !!in a country, would infringe one or more identifiable patents in that
@@ -4574,7 +4574,7 @@ endmodule LIB_VTK_IO
 !!you grant is automatically extended to all recipients of the covered
 !!work and works based on it.
 !!
-!!A patent license is ``discriminatory'' if it does not include within
+!!A patent license is ``discriminatory" if it does not include within
 !!the scope of its coverage, prohibits the exercise of, or is
 !!conditioned on the non-exercise of one or more of the rights that are
 !!specifically granted under this License.  You may not convey a covered
@@ -4625,7 +4625,7 @@ endmodule LIB_VTK_IO
 !!
 !!Each version is given a distinguishing version number.  If the
 !!Program specifies that a certain numbered version of the GNU General
-!!Public License ``or any later version'' applies to it, you have the
+!!Public License ``or any later version" applies to it, you have the
 !!option of following the terms and conditions either of that numbered
 !!version or of any later version published by the Free Software
 !!Foundation.  If the Program does not specify a version number of the
@@ -4647,7 +4647,7 @@ endmodule LIB_VTK_IO
 !!\begin{sloppypar}
 !! THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
 !! APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE
-!! COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM ``AS IS''
+!! COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM ``AS IS"
 !! WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 !! INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 !! MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE
@@ -4692,7 +4692,7 @@ endmodule LIB_VTK_IO
 !!To do so, attach the following notices to the program.  It is safest
 !!to attach them to the start of each source file to most effectively
 !!state the exclusion of warranty; and each file should have at least
-!!the ``copyright'' line and a pointer to where the full notice is found.
+!!the ``copyright" line and a pointer to where the full notice is found.
 !!
 !!{\footnotesize
 !!\begin{verbatim}
@@ -4733,10 +4733,10 @@ endmodule LIB_VTK_IO
 !!The hypothetical commands {\tt show w} and {\tt show c} should show
 !!the appropriate
 !!parts of the General Public License.  Of course, your program's commands
-!!might be different; for a GUI interface, you would use an ``about box''.
+!!might be different; for a GUI interface, you would use an ``about box".
 !!
 !!You should also get your employer (if you work as a programmer) or
-!!school, if any, to sign a ``copyright disclaimer'' for the program, if
+!!school, if any, to sign a ``copyright disclaimer" for the program, if
 !!necessary.  For more information on this, and how to apply and follow
 !!the GNU GPL, see \texttt{http://www.gnu.org/licenses/}.
 !!
@@ -4750,3 +4750,4 @@ endmodule LIB_VTK_IO
 !!\end{enumerate}
 
 !(doc)footer
+ >  >  >  >  >  >  > f12ccc8... switches from getarg() to get_command_argument(); updates formatting

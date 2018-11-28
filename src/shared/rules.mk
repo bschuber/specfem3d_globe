@@ -11,7 +11,7 @@
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -54,6 +54,7 @@ shared_OBJECTS = \
 	$O/gll_library.shared.o \
 	$O/heap_sort.shared.o \
 	$O/hex_nodes.shared.o \
+	$O/init_openmp.shared.o \
 	$O/interpolate.shared.o \
 	$O/intgrl.shared.o \
 	$O/lagrange_poly.shared.o \
@@ -75,6 +76,7 @@ shared_OBJECTS = \
 	$O/sort_array_coordinates.shared.o \
 	$O/spline_routines.shared.o \
 	$O/write_VTK_file.shared.o \
+	$O/ylm.shared.o \
 	$(EMPTY_MACRO)
 
 shared_MODULES = \
@@ -177,4 +179,4 @@ $O/%.shared_asdf.o: $S/%.f90
 	${FCCOMPILE_CHECK} ${FCFLAGS_f90} -c -o $@ $<
 
 $O/%.cc.o: $S/%.c ${SETUP}/config.h
-	${CC} -c $(CPPFLAGS) $(CFLAGS) -o $@ $< 
+	${CC} -c $(CPPFLAGS) $(CFLAGS) -o $@ $<

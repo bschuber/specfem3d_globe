@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -76,7 +76,7 @@
   endif
 
   ! broadcast parameters read from master to all processes
-  call broadcast_computed_parameters(myrank)
+  call broadcast_computed_parameters()
 
   ! check that the code is running with the requested number of processes
   if (sizeprocs /= NPROCTOT) then
@@ -102,5 +102,8 @@
   if (GRAVITY_INTEGRALS) then
     call gravity_initialize_integrals()
   endif
+
+  ! OpenMP
+  call init_openmp()
 
   end subroutine initialize_mesher

@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -25,7 +25,7 @@
 !
 !=====================================================================
 
-  subroutine create_mass_matrices(nspec,nglob,idoubling,ibool, &
+  subroutine create_mass_matrices(idoubling,ibool, &
                                   iregion_code,xstore,ystore,zstore, &
                                   NSPEC2D_TOP,NSPEC2D_BOTTOM)
 
@@ -47,13 +47,13 @@
     OCEANS
 
   use meshfem3D_par, only: &
-    myrank,NCHUNKS,ABSORBING_CONDITIONS, &
+    myrank,nspec,nglob,NCHUNKS,ABSORBING_CONDITIONS, &
     ROTATION,EXACT_MASS_MATRIX_FOR_ROTATION,INCLUDE_CENTRAL_CUBE
 
-  use create_regions_mesh_par, only: &
+  use regions_mesh_par, only: &
     wxgll,wygll,wzgll
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     xixstore,xiystore,xizstore,etaxstore,etaystore,etazstore, &
     gammaxstore,gammaystore,gammazstore,rhostore,kappavstore, &
     rmassx,rmassy,rmassz,b_rmassx,b_rmassy, &
@@ -61,11 +61,10 @@
 
   implicit none
 
-  integer :: nspec,nglob
-  integer,dimension(nspec) :: idoubling
-  integer,dimension(NGLLX,NGLLY,NGLLZ,nspec) :: ibool
+  integer,dimension(nspec),intent(in) :: idoubling
+  integer,dimension(NGLLX,NGLLY,NGLLZ,nspec),intent(in) :: ibool
 
-  integer :: iregion_code
+  integer,intent(in) :: iregion_code
 
   ! arrays with the mesh in double precision
   double precision,dimension(NGLLX,NGLLY,NGLLZ,nspec) :: xstore,ystore,zstore
@@ -100,6 +99,10 @@
 !----------------------------------------------------------------
 
 ! first create the main standard mass matrix with no corrections
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(ispec,i,j,k,iglob,weight, &
+!$OMP xixl,xiyl,xizl,etaxl,etayl,etazl,gammaxl,gammayl,gammazl,jacobianl)
+!$OMP DO
   do ispec = 1,nspec
 
     ! suppress fictitious elements in central cube
@@ -154,6 +157,8 @@
       enddo
     enddo
   enddo ! of loop on ispec
+!$OMP ENDDO
+!$OMP END PARALLEL
 
 ! copy the initial mass matrix if needed
   if (nglob_xy == nglob) then
@@ -166,13 +171,13 @@
 
   ! then make the corrections to the copied mass matrices if needed
   if (ROTATION .and. EXACT_MASS_MATRIX_FOR_ROTATION) then
-    call create_mass_matrices_rotation(nspec,ibool,idoubling,iregion_code)
+    call create_mass_matrices_rotation(ibool,idoubling,iregion_code)
   endif
 
   ! absorbing boundaries
   ! add C*deltat/2 contribution to the mass matrices on the Stacey edges
   if (NCHUNKS /= 6 .and. ABSORBING_CONDITIONS) then
-    call create_mass_matrices_Stacey(nspec,ibool,iregion_code,NSPEC2D_BOTTOM)
+    call create_mass_matrices_Stacey(ibool,iregion_code,NSPEC2D_BOTTOM)
   endif
 
   ! check that mass matrix is positive
@@ -200,7 +205,7 @@
 
   ! save ocean load mass matrix as well if oceans
   if (OCEANS .and. iregion_code == IREGION_CRUST_MANTLE) then
-    call create_mass_matrices_ocean_load(nspec,ibool,xstore,ystore,zstore,NSPEC2D_TOP)
+    call create_mass_matrices_ocean_load(ibool,xstore,ystore,zstore,NSPEC2D_TOP)
   endif
 
   end subroutine create_mass_matrices
@@ -210,22 +215,21 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine create_mass_matrices_rotation(nspec,ibool,idoubling,iregion_code)
+  subroutine create_mass_matrices_rotation(ibool,idoubling,iregion_code)
 
-! in the case of Stacey boundary conditions, add C*deltat/2 contribution to the mass matrix
-! on Stacey edges for the crust_mantle and outer_core regions but not for the inner_core region
+! in the case of rotation, add C*deltat/2 contribution to the mass matrix
 ! thus the mass matrix must be replaced by three mass matrices including the "C" damping matrix
 !
 ! only called in case of (ROTATION .and. EXACT_MASS_MATRIX_FOR_ROTATION)
   use constants
 
   use meshfem3D_par, only: &
-    myrank,DT
+    myrank,DT,nspec
 
-  use create_regions_mesh_par, only: &
+  use regions_mesh_par, only: &
     wxgll,wygll,wzgll
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     xixstore,xiystore,xizstore,etaxstore,etaystore,etazstore, &
     gammaxstore,gammaystore,gammazstore, &
     rmassx,rmassy,b_rmassx,b_rmassy
@@ -233,8 +237,6 @@
   use shared_parameters, only: UNDO_ATTENUATION
 
   implicit none
-
-  integer :: nspec
 
   integer,dimension(NGLLX,NGLLY,NGLLZ,nspec) :: ibool
   integer,dimension(nspec) :: idoubling
@@ -277,6 +279,10 @@
 
   case (IREGION_CRUST_MANTLE, IREGION_INNER_CORE)
 
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(ispec,i,j,k,iglob,weight, &
+!$OMP xixl,xiyl,xizl,etaxl,etayl,etazl,gammaxl,gammayl,gammazl,jacobianl)
+!$OMP DO
     do ispec = 1,nspec
 
       ! suppress fictitious elements in central cube
@@ -318,6 +324,8 @@
         enddo
       enddo
     enddo ! of loop on ispec
+!$OMP ENDDO
+!$OMP END PARALLEL
 
   end select
 
@@ -329,8 +337,7 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine create_mass_matrices_Stacey(nspec,ibool,iregion_code, &
-                                        NSPEC2D_BOTTOM)
+  subroutine create_mass_matrices_Stacey(ibool,iregion_code,NSPEC2D_BOTTOM)
 
 ! in the case of Stacey boundary conditions, add C*deltat/2 contribution to the mass matrix
 ! on Stacey edges for the crust_mantle and outer_core regions but not for the inner_core region
@@ -339,13 +346,13 @@
   use constants
 
   use meshfem3D_par, only: &
-    myrank,DT,NCHUNKS,ichunk, &
+    myrank,DT,NCHUNKS,ichunk,nspec, &
     ROTATION,EXACT_MASS_MATRIX_FOR_ROTATION
 
-  use create_regions_mesh_par, only: &
+  use regions_mesh_par, only: &
     wxgll,wygll,wzgll
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     rmassx,rmassy,rmassz,b_rmassx,b_rmassy, &
     ibelm_xmin,ibelm_xmax,ibelm_ymin,ibelm_ymax,ibelm_bottom, &
     normal_xmin,normal_xmax,normal_ymin,normal_ymax, &
@@ -357,7 +364,6 @@
 
   implicit none
 
-  integer :: nspec
   integer,dimension(NGLLX,NGLLY,NGLLZ,nspec) :: ibool
 
   integer :: iregion_code
@@ -706,26 +712,25 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine create_mass_matrices_ocean_load(nspec,ibool,xstore,ystore,zstore,NSPEC2D_TOP)
+  subroutine create_mass_matrices_ocean_load(ibool,xstore,ystore,zstore,NSPEC2D_TOP)
 
   use constants
 
   use meshfem3D_models_par, only: &
-    TOPOGRAPHY,ibathy_topo,CASE_3D
+    OCEANS,TOPOGRAPHY,ibathy_topo,CASE_3D
 
   use meshfem3D_par, only: &
-    myrank,RHO_OCEANS
+    myrank,RHO_OCEANS,nspec
 
-  use create_regions_mesh_par, only: &
+  use regions_mesh_par, only: &
     wxgll,wygll
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     rmassz,rmass_ocean_load, &
     ibelm_top,jacobian2D_top
 
   implicit none
 
-  integer :: nspec
   integer,dimension(NGLLX,NGLLY,NGLLZ,nspec) :: ibool
 
   ! arrays with the mesh in double precision
@@ -741,6 +746,9 @@
   integer :: ispec,i,j,k,iglob,ispec2D
 
   logical :: do_ocean_load
+
+  ! checks if anything to do
+  if (.not. OCEANS) return
 
   ! user output
   if (myrank == 0) then
@@ -770,6 +778,9 @@
 
   ! add contribution of the oceans
   ! for surface elements exactly at the top of the crust (ocean bottom)
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(ispec2D,ispec,i,j,iglob,x,y,z,r,theta,phi,lat,lon,elevation,height_oceans,weight)
+!$OMP DO
   do ispec2D = 1,NSPEC2D_TOP
 
     ! gets spectral element index
@@ -850,8 +861,9 @@
 
       enddo
     enddo
-
   enddo
+!$OMP ENDDO
+!$OMP END PARALLEL
 
   ! add regular mass matrix to ocean load contribution
   rmass_ocean_load(:) = rmass_ocean_load(:) + rmassz(:)

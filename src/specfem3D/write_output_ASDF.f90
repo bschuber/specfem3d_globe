@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -158,16 +158,18 @@
 !> Writes the ASDF data structure to the file
   subroutine write_asdf()
 
+  use constants, only: OUTPUT_PROVENANCE
   use constants_solver, only: NDIM,itag
 
   use asdf_data, only: asdf_container
 
   use iso_c_binding
-  use iso_fortran_env
+  use iso_Fortran_env
 
   use specfem_par
 
   use my_mpi
+  !use my_mpi
 
   implicit none
 
@@ -269,13 +271,15 @@
   ! Generate minimal QuakeML for SPECFEM3D_GLOBE
   call cmt_to_quakeml(quakeml, pde_start_time_string, cmt_start_time_string)
 
-  ! Generate specfem provenance string
-  call ASDF_generate_sf_provenance_f(trim(start_time_string)//C_NULL_CHAR, &
+  if (OUTPUT_PROVENANCE) then
+    ! Generate specfem provenance string
+    call ASDF_generate_sf_provenance_f(trim(start_time_string)//C_NULL_CHAR, &
                                    trim(end_time_string)//C_NULL_CHAR, cptr, len_prov)
-  call c_f_pointer(cptr, fptr, [len_prov])
-  allocate(provenance(len_prov+1))
-  provenance(1:len_prov) = fptr(1:len_prov)
-  provenance(len_prov+1) = C_NULL_CHAR
+    call c_f_pointer(cptr, fptr, [len_prov])
+    allocate(provenance(len_prov+1))
+    provenance(1:len_prov) = fptr(1:len_prov)
+    provenance(len_prov+1) = C_NULL_CHAR
+  endif
 
   allocate(networks_names(num_stations), stat=ier)
   allocate(stations_names(num_stations), stat=ier)
@@ -410,44 +414,47 @@
     if (myrank == 0) then
         call ASDF_initialize_hdf5_f(ier);
         call ASDF_create_new_file_serial_f(trim(OUTPUT_FILES) // "synthetic.h5" // C_NULL_CHAR, current_asdf_handle)
-    
+
         call ASDF_write_string_attribute_f(current_asdf_handle, "file_format" // C_NULL_CHAR, &
                                            "ASDF" // C_NULL_CHAR, ier)
         call ASDF_write_string_attribute_f(current_asdf_handle, "file_format_version" // C_NULL_CHAR, &
                                            "1.0.0" // C_NULL_CHAR, ier)
-    
+
         call ASDF_write_quakeml_f(current_asdf_handle, trim(quakeml) // C_NULL_CHAR, ier)
-        call ASDF_write_provenance_data_f(current_asdf_handle, provenance(1:len_prov+1), ier)
-    
-        call read_file("setup/constants.h", sf_constants, len_constants)
-        call read_file("DATA/Par_file", sf_parfile, len_Parfile)
-    
-    
-        call ASDF_write_auxiliary_data_f(current_asdf_handle, trim(sf_constants) // &
+
+        if (OUTPUT_PROVENANCE) then
+          call ASDF_write_provenance_data_f(current_asdf_handle, provenance(1:len_prov+1), ier)
+
+          call read_file("setup/constants.h", sf_constants, len_constants)
+          call read_file("DATA/Par_file", sf_parfile, len_Parfile)
+
+
+          call ASDF_write_auxiliary_data_f(current_asdf_handle, trim(sf_constants) // &
                                          C_NULL_CHAR, trim(sf_parfile(1:len_Parfile)) // &
                                          C_NULL_CHAR, ier)
-    
+        endif
+
         call ASDF_create_waveforms_group_f(current_asdf_handle, waveforms_grp)
-    
-    
+
+
         do k = 1, mysize ! Need to set up metadata for all processes
-            
+
           do j = 1, num_stations_gather(k) ! loop over number of stations on that process
             call ASDF_create_stations_group_f(waveforms_grp, &
                trim(network_names_gather(j, k)) // "." //      &
                trim(station_names_gather(j, k)) // C_NULL_CHAR, &
                station_grp)
             stationxml_length = 1423 + len(trim(station_names_gather(j,k))) + len(trim(network_names_gather(j,k)))
-    
+
             call ASDF_define_station_xml_f(station_grp, stationxml_length, &
                                          stationxml_grp)
-    
+
             call station_to_stationxml(station_names_gather(j,k), network_names_gather(j,k), &
                                    station_lats_gather(j,k), station_longs_gather(j,k), &
                                    station_elevs_gather(j,k), station_depths_gather(j,k), &
                                    start_time_string, stationxml)
             call ASDF_write_station_xml_f(stationxml_grp, trim(stationxml)//C_NULL_CHAR, ier)
-    
+
             do  i = 1, 3 ! loop over each component
               ! Generate unique waveform name
               write(waveform_name, '(a)') &
@@ -461,13 +468,13 @@
                   data_ids(i))
                 call ASDF_close_dataset_f(data_ids(i), ier)
             enddo
-    
+
             call ASDF_close_dataset_f(stationxml_grp, ier)
             call ASDF_close_group_f(station_grp, ier)
-    
+
           enddo
         enddo
-    
+
         call ASDF_close_group_f(waveforms_grp, ier)
         call ASDF_close_file_f(current_asdf_handle, ier)
         call ASDF_finalize_hdf5_f(ier)
@@ -521,7 +528,7 @@
 
             call send_cr(one_seismogram,NDIM*seismo_current,receiver,itag)
 
-          elseif (myrank == 0) then
+          else if (myrank == 0) then
 
             call recv_cr(one_seismogram,NDIM*seismo_current,sender,itag)
 
@@ -546,7 +553,7 @@
             call ASDF_open_waveform_f(station_grp, &
               trim(waveform_name) // C_NULL_CHAR, &
               data_ids(i))
-  
+
             call ASDF_write_partial_waveform_f(data_ids(i), &
                                         one_seismogram(i,1:seismo_current), seismo_offset, seismo_current, ier)
             call ASDF_close_dataset_f(data_ids(i), ier)
@@ -557,7 +564,7 @@
 
       enddo
     enddo
-        
+
     if (myrank == 0) then
 
       call ASDF_close_group_f(waveforms_grp, ier)
@@ -623,7 +630,7 @@
   !--------------------------------------------------------
 
 
-  deallocate(provenance)
+  if (OUTPUT_PROVENANCE) deallocate(provenance)
   deallocate(station_names_gather)
   deallocate(network_names_gather)
   deallocate(component_names_gather)
@@ -650,7 +657,7 @@
     cmt_lat => cmt_lat_SAC,cmt_lon => cmt_lon_SAC,cmt_depth => cmt_depth_SAC, &
     hdur => cmt_hdur_SAC,M0,Mrr,Mtt,Mpp,Mrt,Mrp,Mtp,event_name_SAC, &
     pde_lat => elat_SAC,pde_lon => elon_SAC,pde_depth => depth_SAC, &
-    mb => mb_SAC,ms,Mw
+    mb => mb_SAC,ms => ms_SAC,Mw
 
   implicit none
   character(len=*) :: quakemlstring
@@ -668,7 +675,7 @@
   write(cmt_lat_str, "(g12.5)") cmt_lat
   write(cmt_lon_str, "(g12.5)") cmt_lon
   write(cmt_depth_str, "(g12.5)") cmt_depth*1000 ! km to m conversion
-  write(hdur_str, "(g12.5)") hdur
+  write(hdur_str, "(g12.5)") hdur*2
   write(M0_str, "(g12.5)") M0*1e-7 ! dyn-cm to N-m conversion
   write(mb_str, "(g12.5)") mb
   write(ms_str, "(g12.5)") ms

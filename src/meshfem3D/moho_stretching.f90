@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -35,11 +35,10 @@
   use constants, only: &
     NGNOD,R_EARTH_KM,R_EARTH,R_UNIT_SPHERE, &
     PI_OVER_TWO,RADIANS_TO_DEGREES,TINYVAL,SMALLVAL,ONE,USE_OLD_VERSION_5_1_5_FORMAT, &
-    SUPPRESS_MOHO_STRETCHING, &
-    ITYPE_CRUSTAL_MODEL,ICRUST_CRUST_SH
+    SUPPRESS_MOHO_STRETCHING,ICRUST_CRUST_SH
 
   use meshfem3D_par, only: &
-    RMOHO_FICTITIOUS_IN_MESHER,R220,RMIDDLE_CRUST
+    RMOHO_FICTITIOUS_IN_MESHER,R220,RMIDDLE_CRUST,REFERENCE_CRUSTAL_MODEL
 
   use meshfem3D_par, only: &
     TOPOGRAPHY
@@ -68,7 +67,7 @@
   ! sets min/max allowed moho depth
   MOHO_MINIMUM = MOHO_MINIMUM_DEFAULT
   MOHO_MAXIMUM = MOHO_MAXIMUM_DEFAULT
-  if (ITYPE_CRUSTAL_MODEL == ICRUST_CRUST_SH) then
+  if (REFERENCE_CRUSTAL_MODEL == ICRUST_CRUST_SH) then
     ! minimum moho < 3.9km
     MOHO_MINIMUM = 3.5d0 / R_EARTH_KM
   endif
@@ -370,11 +369,11 @@
 
   implicit none
 
-  integer ia
+  integer :: ia
 
-  double precision xelm(NGNOD)
-  double precision yelm(NGNOD)
-  double precision zelm(NGNOD)
+  double precision :: xelm(NGNOD)
+  double precision :: yelm(NGNOD)
+  double precision :: zelm(NGNOD)
 
   double precision :: x,y,z
 
@@ -520,11 +519,11 @@
 
   implicit none
 
-  integer ia
+  integer :: ia
 
-  double precision xelm(NGNOD)
-  double precision yelm(NGNOD)
-  double precision zelm(NGNOD)
+  double precision :: xelm(NGNOD)
+  double precision :: yelm(NGNOD)
+  double precision :: zelm(NGNOD)
 
   double precision :: r,moho
   double precision :: x,y,z
@@ -642,11 +641,11 @@
 
   implicit none
 
-  integer ia
+  integer :: ia
 
-  double precision xelm(NGNOD)
-  double precision yelm(NGNOD)
-  double precision zelm(NGNOD)
+  double precision :: xelm(NGNOD)
+  double precision :: yelm(NGNOD)
+  double precision :: zelm(NGNOD)
 
   double precision :: x,y,z
 

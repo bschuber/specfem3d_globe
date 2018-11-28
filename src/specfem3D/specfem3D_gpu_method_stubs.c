@@ -12,7 +12,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -130,13 +130,13 @@ void FC_FUNC_ (compute_add_sources_adjoint_gpu,
 void FC_FUNC_(transfer_adj_to_device,
               TRANSFER_ADJ_TO_DEVICE)(long* Mesh_pointer_f,
                                       int* h_nrec,
-                                      realw* h_adj_sourcearrays,
+                                      realw* h_source_adjoint,
                                       int* h_islice_selected_rec) {}
 
 void FC_FUNC_(transfer_adj_to_device_async,
               TRANSFER_ADJ_TO_DEVICE_ASYNC)(long *Mesh_pointer_f,
                                             int *h_nrec,
-                                            realw *h_adj_sourcearrays,
+                                            realw *h_source_adjoint,
                                             int *h_islice_selected_rec) {}
 
 
@@ -218,6 +218,16 @@ void FC_FUNC_ (compute_kernels_hess_gpu,
                COMPUTE_KERNELS_HESS_GPU) (long *Mesh_pointer_f,
                                           realw *deltat_f) {}
 
+void FC_FUNC_ (resort_array,
+               RESORT_ARRAY) (long *Mesh_pointer_f) {}
+
+//
+// src/gpu/compute_seismograms_gpu.c
+//
+void FC_FUNC_ (compute_seismograms_gpu,
+               COMPUTE_SEISMOGRAMS_GPU) (long *Mesh_pointer_f,
+                                         realw* seismograms,
+                                         int* seismo_currentf) {}
 
 //
 // src/gpu/compute_stacey_acoustic_gpu.c
@@ -327,6 +337,7 @@ void FC_FUNC_ (prepare_constants_device,
                                           int *h_islice_selected_rec, int *h_ispec_selected_rec,
                                           int *NSPEC_CRUST_MANTLE, int *NGLOB_CRUST_MANTLE,
                                           int *NSPEC_CRUST_MANTLE_STRAIN_ONLY,
+                                          int *NSPECMAX_ISO_MANTLE, int *NSPECMAX_TISO_MANTLE,
                                           int *NSPEC_OUTER_CORE, int *NGLOB_OUTER_CORE,
                                           int *NSPEC_INNER_CORE, int *NGLOB_INNER_CORE,
                                           int *NSPEC_INNER_CORE_STRAIN_ONLY,
@@ -342,7 +353,8 @@ void FC_FUNC_ (prepare_constants_device,
                                           int *USE_MESH_COLORING_GPU_f,
                                           int *ANISOTROPIC_KL_f, int *APPROXIMATE_HESS_KL_f,
                                           realw *deltat_f, realw *b_deltat_f,
-                                          int *GPU_ASYNC_COPY_f) {}
+                                          int *GPU_ASYNC_COPY_f,
+                                          double * h_xir,double * h_etar,double * h_gammar) {}
 
 void FC_FUNC_ (prepare_fields_rotation_device,
                PREPARE_FIELDS_ROTATION_DEVICE) (long *Mesh_pointer_f,
@@ -626,8 +638,14 @@ void FC_FUNC_(transfer_displ_cm_from_device,
 void FC_FUNC_(transfer_b_displ_cm_from_device,
               TRANSFER_B_DISPL_CM_FROM_DEVICE)(int *size, realw *displ, long *Mesh_pointer_f) {}
 
+void FC_FUNC_(transfer_ofs_b_displ_cm_from_device,
+              TRANSFER_OFS_B_DISPL_CM_FROM_DEVICE)(int *size, int *offset, realw *displ, long *Mesh_pointer_f) {}
+
 void FC_FUNC_(transfer_b_displ_cm_to_device,
               TRANSFER_B_DISPL_CM_TO_DEVICE)(int *size, realw *displ, long *Mesh_pointer_f) {}
+
+void FC_FUNC_(transfer_ofs_b_displ_cm_to_device,
+              TRANSFER_OFS_B_DISPL_CM_TO_DEVICE)(int *size, int *offset, realw *displ, long *Mesh_pointer_f) {}
 
 void FC_FUNC_(transfer_displ_ic_from_device,
               TRANSFER_DISPL_IC_FROM_DEVICE)(int *size, realw *displ, long *Mesh_pointer_f) {}
@@ -635,8 +653,14 @@ void FC_FUNC_(transfer_displ_ic_from_device,
 void FC_FUNC_(transfer_b_displ_ic_from_device,
               TRANSFER_B_DISPL_IC_FROM_DEVICE)(int *size, realw *displ, long *Mesh_pointer_f) {}
 
+void FC_FUNC_(transfer_ofs_b_displ_ic_from_device,
+              TRANSFER_OFS_B_DISPL_IC_FROM_DEVICE)(int *size, int *offset, realw *displ, long *Mesh_pointer_f) {}
+
 void FC_FUNC_(transfer_b_displ_ic_to_device,
               TRANSFER_B_DISPL_IC_TO_DEVICE)(int *size, realw *displ, long *Mesh_pointer_f) {}
+
+void FC_FUNC_(transfer_ofs_b_displ_ic_to_device,
+              TRANSFER_OFS_B_DISPL_IC_TO_DEVICE)(int *size, int *offset, realw *displ, long *Mesh_pointer_f) {}
 
 void FC_FUNC_(transfer_displ_oc_from_device,
               TRANSFER_DISPL_OC_FROM_DEVICE)(int *size, realw *displ, long *Mesh_pointer_f) {}
@@ -644,8 +668,14 @@ void FC_FUNC_(transfer_displ_oc_from_device,
 void FC_FUNC_(transfer_b_displ_oc_from_device,
               TRANSFER_B_DISPL_OC_FROM_DEVICE)(int *size, realw *b_displ, long *Mesh_pointer_f) {}
 
+void FC_FUNC_(transfer_ofs_b_displ_oc_from_device,
+              TRANSFER_OFS_B_DISPL_OC_FROM_DEVICE)(int *size, int *offset, realw *b_displ, long *Mesh_pointer_f) {}
+
 void FC_FUNC_(transfer_b_displ_oc_to_device,
               TRANSFER_B_DISPL_OC_TO_DEVICE)(int *size, realw *b_displ, long *Mesh_pointer_f) {}
+
+void FC_FUNC_(transfer_ofs_b_displ_oc_to_device,
+              TRANSFER_OFS_B_DISPL_OC_TO_DEVICE)(int *size, int *offset, realw *b_displ, long *Mesh_pointer_f) {}
 
 void FC_FUNC_(transfer_veloc_cm_from_device,
               TRANSFER_VELOC_CM_FROM_DEVICE)(int *size, realw *veloc, long *Mesh_pointer_f) {}
@@ -674,8 +704,14 @@ void FC_FUNC_(transfer_accel_oc_from_device,
 void FC_FUNC_(transfer_b_accel_oc_from_device,
               TRANSFER_B_ACCEL_OC_FROM_DEVICE)(int *size, realw *b_accel, long *Mesh_pointer_f) {}
 
+void FC_FUNC_(transfer_ofs_b_accel_oc_from_device,
+              TRANSFER_OFS_B_ACCEL_OC_FROM_DEVICE)(int *size, int *offset, realw *b_accel, long *Mesh_pointer_f) {}
+
 void FC_FUNC_(transfer_b_accel_oc_to_device,
               TRANSFER_B_ACCEL_OC_TO_DEVICE)(int *size, realw *b_accel, long *Mesh_pointer_f) {}
+
+void FC_FUNC_(transfer_ofs_b_accel_oc_to_device,
+              TRANSFER_OFS_B_ACCEL_OC_TO_DEVICE)(int *size, int *offset, realw *b_accel, long *Mesh_pointer_f) {}
 
 void FC_FUNC_(transfer_strain_cm_from_device,
               TRANSFER_STRAIN_CM_FROM_DEVICE)(long *Mesh_pointer_f,

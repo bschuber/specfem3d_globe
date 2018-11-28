@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -50,58 +50,88 @@
 
   ! local parameters
   double precision :: xixd,xiyd,xizd,etaxd,etayd,etazd,gammaxd,gammayd,gammazd
+
   ! source arrays
   double precision, dimension(NDIM,NGLLX,NGLLY,NGLLZ) :: sourcearrayd
-  double precision, dimension(NGLLX,NGLLY,NGLLZ) :: G11,G12,G13,G21,G22,G23,G31,G32,G33
   double precision, dimension(NGLLX) :: hxis,hpxis
   double precision, dimension(NGLLY) :: hetas,hpetas
   double precision, dimension(NGLLZ) :: hgammas,hpgammas
 
+  double precision :: hlagrange
+  double precision :: dsrc_dx, dsrc_dy, dsrc_dz
+  double precision :: dxis_dx, detas_dx, dgammas_dx
+  double precision :: dxis_dy, detas_dy, dgammas_dy
+  double precision :: dxis_dz, detas_dz, dgammas_dz
+
   integer :: k,l,m
 
-  ! calculate G_ij for general source location
-  ! the source does not necessarily correspond to a Gauss-Lobatto point
-  do m = 1,NGLLZ
-    do l = 1,NGLLY
-      do k = 1,NGLLX
-
-        xixd    = dble(xix(k,l,m))
-        xiyd    = dble(xiy(k,l,m))
-        xizd    = dble(xiz(k,l,m))
-        etaxd   = dble(etax(k,l,m))
-        etayd   = dble(etay(k,l,m))
-        etazd   = dble(etaz(k,l,m))
-        gammaxd = dble(gammax(k,l,m))
-        gammayd = dble(gammay(k,l,m))
-        gammazd = dble(gammaz(k,l,m))
-
-        G11(k,l,m) = Mxx*xixd+Mxy*xiyd+Mxz*xizd
-        G12(k,l,m) = Mxx*etaxd+Mxy*etayd+Mxz*etazd
-        G13(k,l,m) = Mxx*gammaxd+Mxy*gammayd+Mxz*gammazd
-        G21(k,l,m) = Mxy*xixd+Myy*xiyd+Myz*xizd
-        G22(k,l,m) = Mxy*etaxd+Myy*etayd+Myz*etazd
-        G23(k,l,m) = Mxy*gammaxd+Myy*gammayd+Myz*gammazd
-        G31(k,l,m) = Mxz*xixd+Myz*xiyd+Mzz*xizd
-        G32(k,l,m) = Mxz*etaxd+Myz*etayd+Mzz*etazd
-        G33(k,l,m) = Mxz*gammaxd+Myz*gammayd+Mzz*gammazd
-
-      enddo
-    enddo
-  enddo
-
 ! compute Lagrange polynomials at the source location
+! the source does not necessarily correspond to a Gauss-Lobatto point
   call lagrange_any(xi_source,NGLLX,xigll,hxis,hpxis)
   call lagrange_any(eta_source,NGLLY,yigll,hetas,hpetas)
   call lagrange_any(gamma_source,NGLLZ,zigll,hgammas,hpgammas)
 
-! calculate source array
+  dxis_dx = ZERO
+  dxis_dy = ZERO
+  dxis_dz = ZERO
+  detas_dx = ZERO
+  detas_dy = ZERO
+  detas_dz = ZERO
+  dgammas_dx = ZERO
+  dgammas_dy = ZERO
+  dgammas_dz = ZERO
+
   do m = 1,NGLLZ
-    do l = 1,NGLLY
-      do k = 1,NGLLX
-        call multiply_arrays_source(sourcearrayd,G11,G12,G13,G21,G22,G23, &
-                  G31,G32,G33,hxis,hpxis,hetas,hpetas,hgammas,hpgammas,k,l,m)
-      enddo
-    enddo
+     do l = 1,NGLLY
+        do k = 1,NGLLX
+
+           xixd    = dble(xix(k,l,m))
+           xiyd    = dble(xiy(k,l,m))
+           xizd    = dble(xiz(k,l,m))
+           etaxd   = dble(etax(k,l,m))
+           etayd   = dble(etay(k,l,m))
+           etazd   = dble(etaz(k,l,m))
+           gammaxd = dble(gammax(k,l,m))
+           gammayd = dble(gammay(k,l,m))
+           gammazd = dble(gammaz(k,l,m))
+
+           hlagrange = hxis(k) * hetas(l) * hgammas(m)
+
+           dxis_dx = dxis_dx + hlagrange * xixd
+           dxis_dy = dxis_dy + hlagrange * xiyd
+           dxis_dz = dxis_dz + hlagrange * xizd
+
+           detas_dx = detas_dx + hlagrange * etaxd
+           detas_dy = detas_dy + hlagrange * etayd
+           detas_dz = detas_dz + hlagrange * etazd
+
+           dgammas_dx = dgammas_dx + hlagrange * gammaxd
+           dgammas_dy = dgammas_dy + hlagrange * gammayd
+           dgammas_dz = dgammas_dz + hlagrange * gammazd
+
+       enddo
+     enddo
+  enddo
+
+! calculate source array
+  sourcearrayd(:,:,:,:) = ZERO
+  do m = 1,NGLLZ
+     do l = 1,NGLLY
+        do k = 1,NGLLX
+
+           dsrc_dx = (hpxis(k)*dxis_dx)*hetas(l)*hgammas(m) + hxis(k)*(hpetas(l)*detas_dx)*hgammas(m) + &
+                                                                hxis(k)*hetas(l)*(hpgammas(m)*dgammas_dx)
+           dsrc_dy = (hpxis(k)*dxis_dy)*hetas(l)*hgammas(m) + hxis(k)*(hpetas(l)*detas_dy)*hgammas(m) + &
+                                                                hxis(k)*hetas(l)*(hpgammas(m)*dgammas_dy)
+           dsrc_dz = (hpxis(k)*dxis_dz)*hetas(l)*hgammas(m) + hxis(k)*(hpetas(l)*detas_dz)*hgammas(m) + &
+                                                                hxis(k)*hetas(l)*(hpgammas(m)*dgammas_dz)
+
+           sourcearrayd(1,k,l,m) = sourcearrayd(1,k,l,m) + (Mxx*dsrc_dx + Mxy*dsrc_dy + Mxz*dsrc_dz)
+           sourcearrayd(2,k,l,m) = sourcearrayd(2,k,l,m) + (Mxy*dsrc_dx + Myy*dsrc_dy + Myz*dsrc_dz)
+           sourcearrayd(3,k,l,m) = sourcearrayd(3,k,l,m) + (Mxz*dsrc_dx + Myz*dsrc_dy + Mzz*dsrc_dz)
+
+       enddo
+     enddo
   enddo
 
   ! distinguish between single and double precision for reals
@@ -112,8 +142,8 @@
 !================================================================
 
   subroutine compute_arrays_source_adjoint(myrank, adj_source_file, &
-                                           xi_receiver,eta_receiver,gamma_receiver, nu,adj_sourcearray, &
-                                           xigll,yigll,zigll,NSTEP_BLOCK,iadjsrc,it_sub_adj,NSTEP_SUB_ADJ, &
+                                           nu,source_adjoint, &
+                                           NSTEP_BLOCK,iadjsrc,it_sub_adj,NSTEP_SUB_ADJ, &
                                            NTSTEP_BETWEEN_READ_ADJSRC,DT)
 
   use constants, only: CUSTOM_REAL,SIZE_REAL,NDIM,NGLLX,NGLLY,NGLLZ,IIN_ADJ,R_EARTH,MAX_STRING_LEN
@@ -128,21 +158,14 @@
 ! instead NSTEP_BLOCK = iadjsrc_len(it_sub_adj), the length of this specific block
 
   integer,intent(in) :: myrank
-
   character(len=*),intent(in) :: adj_source_file
 
-  double precision,intent(in) :: xi_receiver, eta_receiver, gamma_receiver
   double precision, dimension(NDIM,NDIM),intent(in) :: nu
 
 
   ! output
   integer,intent(in) :: NTSTEP_BETWEEN_READ_ADJSRC
-  real(kind=CUSTOM_REAL),intent(out) :: adj_sourcearray(NDIM,NGLLX,NGLLY,NGLLZ,NTSTEP_BETWEEN_READ_ADJSRC)
-
-  ! Gauss-Lobatto-Legendre points of integration and weights
-  double precision, dimension(NGLLX),intent(in) :: xigll
-  double precision, dimension(NGLLY),intent(in) :: yigll
-  double precision, dimension(NGLLZ),intent(in) :: zigll
+  real(kind=CUSTOM_REAL),intent(out) :: source_adjoint(NDIM,NTSTEP_BETWEEN_READ_ADJSRC)
 
   integer,intent(in) :: NSTEP_SUB_ADJ
   integer, dimension(NSTEP_SUB_ADJ,2),intent(in) :: iadjsrc
@@ -153,9 +176,6 @@
   double precision,intent(in) :: DT
 
   ! local parameters
-  double precision :: hxir(NGLLX), hpxir(NGLLX), hetar(NGLLY), hpetar(NGLLY), hgammar(NGLLZ), hpgammar(NGLLZ)
-  double precision, dimension(NDIM,NGLLX,NGLLY,NGLLZ) :: sourcearrayd
-
   double precision, dimension(NDIM,NSTEP_BLOCK) :: adj_src_u
 
   real(kind=CUSTOM_REAL), dimension(NDIM,NSTEP_BLOCK) :: adj_src
@@ -181,7 +201,6 @@
   !                                second time, it will be index_start=1001 to index_end=2000 and so on...
   index_start = iadjsrc(it_sub_adj,1)
   index_end = iadjsrc(it_sub_adj,1)+NSTEP_BLOCK-1
-
 
   ! unfortunately, things become more tricky because of the Newmark time scheme at
   ! the very beginning of the time loop. however, when we read in the backward/reconstructed
@@ -291,20 +310,35 @@
                        + nu(3,:) * adj_src(3,itime)
   enddo
 
-  ! receiver interpolators
-  call lagrange_any(xi_receiver,NGLLX,xigll,hxir,hpxir)
-  call lagrange_any(eta_receiver,NGLLY,yigll,hetar,hpetar)
-  call lagrange_any(gamma_receiver,NGLLZ,zigll,hgammar,hpgammar)
-
-  ! adds interpolated source contribution to all GLL points within this element
-  do itime = 1, NSTEP_BLOCK
-
-    ! multiply with interpolators
-    call multiply_arrays_adjoint(sourcearrayd,hxir,hetar,hgammar,adj_src_u(:,itime))
-
-    ! distinguish between single and double precision for reals
-    adj_sourcearray(:,:,:,:,itime) = real(sourcearrayd(:,:,:,:), kind=CUSTOM_REAL)
-
+  do icomp = 1, NDIM
+    source_adjoint(icomp,:) = adj_src_u(icomp,:)
   enddo
+
+  contains
+
+    subroutine multiply_arrays_adjoint(sourcearrayd,hxir,hetar,hgammar,adj_src_ud)
+
+    use constants
+
+    implicit none
+
+    double precision, dimension(NDIM,NGLLX,NGLLY,NGLLZ) :: sourcearrayd
+    double precision, dimension(NGLLX) :: hxir
+    double precision, dimension(NGLLY) :: hetar
+    double precision, dimension(NGLLZ) :: hgammar
+    double precision, dimension(NDIM) :: adj_src_ud
+
+    integer :: i,j,k
+
+    ! adds interpolated source contribution to all GLL points within this element
+    do k = 1, NGLLZ
+      do j = 1, NGLLY
+        do i = 1, NGLLX
+          sourcearrayd(:,i,j,k) = hxir(i) * hetar(j) * hgammar(k) * adj_src_ud(:)
+        enddo
+      enddo
+    enddo
+
+    end subroutine multiply_arrays_adjoint
 
   end subroutine compute_arrays_source_adjoint

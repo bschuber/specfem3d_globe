@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -33,7 +33,7 @@
 ! used for iterative inversion procedures
 !--------------------------------------------------------------------------------------------------
 
-subroutine read_gll_model_adios(myrank,MGLL_V,NSPEC)
+subroutine read_gll_model_adios(MGLL_V,NSPEC)
 
   use constants
 
@@ -49,7 +49,6 @@ subroutine read_gll_model_adios(myrank,MGLL_V,NSPEC)
   type (model_gll_variables) MGLL_V
 
   integer, dimension(MAX_NUM_REGIONS) :: NSPEC
-  integer :: myrank
 
   ! local parameters
   integer :: local_dim

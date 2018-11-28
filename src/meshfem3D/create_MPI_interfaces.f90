@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -48,10 +48,10 @@
   use meshfem3D_par, only: myrank,ibool, &
     NGLOB2DMAX_XMIN_XMAX,NGLOB2DMAX_YMIN_YMAX, &
     NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX, &
-    NSPEC2D_BOTTOM,NSPEC2D_TOP,NSPEC,NGLOB, &
+    NSPEC2D_BOTTOM,NSPEC2D_TOP,NSPEC_REGIONS,NGLOB_REGIONS, &
     NGLOB1D_RADIAL,NUMCORNERS_SHARED,NGLLX,NGLLY,NGLLZ
 
-  use create_MPI_interfaces_par
+  use MPI_interfaces_par
 
   use MPI_crust_mantle_par
   use MPI_outer_core_par
@@ -90,8 +90,8 @@
     NSPEC2D_BOTTOM_CM = NSPEC2D_BOTTOM(IREGION_CRUST_MANTLE)
     NSPEC2D_TOP_CM = NSPEC2D_TOP(IREGION_CRUST_MANTLE)
 
-    NSPEC_CRUST_MANTLE = NSPEC(IREGION_CRUST_MANTLE)
-    NGLOB_CRUST_MANTLE = NGLOB(IREGION_CRUST_MANTLE)
+    NSPEC_CRUST_MANTLE = NSPEC_REGIONS(IREGION_CRUST_MANTLE)
+    NGLOB_CRUST_MANTLE = NGLOB_REGIONS(IREGION_CRUST_MANTLE)
 
   case (IREGION_OUTER_CORE)
     NGLOB2DMAX_XMIN_XMAX_OC = NGLOB2DMAX_XMIN_XMAX(IREGION_OUTER_CORE)
@@ -102,8 +102,8 @@
     NSPEC2D_BOTTOM_OC = NSPEC2D_BOTTOM(IREGION_OUTER_CORE)
     NSPEC2D_TOP_OC = NSPEC2D_TOP(IREGION_OUTER_CORE)
 
-    NSPEC_OUTER_CORE = NSPEC(IREGION_OUTER_CORE)
-    NGLOB_OUTER_CORE = NGLOB(IREGION_OUTER_CORE)
+    NSPEC_OUTER_CORE = NSPEC_REGIONS(IREGION_OUTER_CORE)
+    NGLOB_OUTER_CORE = NGLOB_REGIONS(IREGION_OUTER_CORE)
 
   case (IREGION_INNER_CORE)
     NGLOB2DMAX_XMIN_XMAX_IC = NGLOB2DMAX_XMIN_XMAX(IREGION_INNER_CORE)
@@ -114,8 +114,8 @@
     NSPEC2D_BOTTOM_IC = NSPEC2D_BOTTOM(IREGION_INNER_CORE)
     NSPEC2D_TOP_IC = NSPEC2D_TOP(IREGION_INNER_CORE)
 
-    NSPEC_INNER_CORE = NSPEC(IREGION_INNER_CORE)
-    NGLOB_INNER_CORE = NGLOB(IREGION_INNER_CORE)
+    NSPEC_INNER_CORE = NSPEC_REGIONS(IREGION_INNER_CORE)
+    NGLOB_INNER_CORE = NGLOB_REGIONS(IREGION_INNER_CORE)
 
   case default
     stop 'Error iregion_code value not recognized'
@@ -201,11 +201,11 @@
   use meshfem3D_par, only: &
     ibool,idoubling,is_on_a_slice_edge
 
-  use create_regions_mesh_par2, only: &
+  use regions_mesh_par2, only: &
     ibelm_xmin,ibelm_xmax,ibelm_ymin,ibelm_ymax,ibelm_bottom,ibelm_top, &
     nspec2D_xmin,nspec2D_xmax,nspec2D_ymin,nspec2D_ymax
 
-  use create_MPI_interfaces_par
+  use MPI_interfaces_par
 
   use MPI_crust_mantle_par
   use MPI_outer_core_par
@@ -393,7 +393,7 @@
 
       ! handles the communications with the central cube if it was included in the mesh
       ! create buffers to assemble with the central cube
-      call create_central_cube_buffers(myrank,iproc_xi,iproc_eta,ichunk, &
+      call create_central_cube_buffers(iproc_xi,iproc_eta,ichunk, &
                  NPROC_XI,NPROC_ETA,NCHUNKS, &
                  NSPEC_INNER_CORE,NGLOB_INNER_CORE, &
                  NSPEC2DMAX_XMIN_XMAX(IREGION_INNER_CORE),NSPEC2DMAX_YMIN_YMAX(IREGION_INNER_CORE), &
@@ -486,7 +486,7 @@
   use meshfem3D_par, only: &
     myrank,IMAIN,NDIM,NUMFACES_SHARED,NUMCORNERS_SHARED,NPROC_XI,NPROC_ETA
 
-  use create_MPI_interfaces_par
+  use MPI_interfaces_par
 
   implicit none
 

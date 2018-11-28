@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -105,7 +105,7 @@ contains
   use constants, only: ADIOS_BUFFER_SIZE_IN_MB
 
 #ifdef ADIOS_INPUT
-  use adios_write_mod, only: adios_init_noxml,adios_allocate_buffer
+  use adios_write_mod, only: adios_init_noxml,adios_set_max_buffer_size
 #endif
 
   implicit none
@@ -138,11 +138,19 @@ contains
   !print *,'adios init return: ',ier
   !if (ier /= 0 ) stop 'Error setting up ADIOS: calling adios_init_noxml() routine failed'
 
+! ask/check at configuration step for adios version 1.10 or higher?
+#ifdef ADIOS_VERSION_OLD
+  ! ADIOS versions <= 1.9
+  ! note: for newer versions ( >= 1.10), this will produce a warning might not be supported anymore
   call adios_allocate_buffer(ADIOS_BUFFER_SIZE_IN_MB, ier)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !       e.g., version 1.5.0 returns 1 if called first time, 0 if already called
   !print *,'adios allocate buffer return: ',ier
   !call check_adios_err(myrank_adios,ier)
+#else
+  ! ADIOS versions >= 1.10
+  call adios_set_max_buffer_size(ADIOS_BUFFER_SIZE_IN_MB)
+#endif
 
   ! sets flag
   is_adios_initialized = .true.
@@ -308,13 +316,13 @@ contains
   if (DEBUG) print *,'***debug ADIOS: rank ',myrank_adios,' init group ',trim(group_name),'****'
 
   ! initializes adios group
-  call adios_declare_group(adios_group, group_name, "", 0, ier)
+  call adios_declare_group(adios_group, group_name, '', 0, ier)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,ier)
 
   ! We set the transport method to 'MPI'. This seems to be the correct choice
   ! for now. We might want to move this to the constant.h file later on.
-  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, "", "", ier)
+  call adios_select_method(adios_group, ADIOS_TRANSPORT_METHOD, '', '', ier)
   ! note: return codes for this function have been fixed for ADIOS versions >= 1.6
   !call check_adios_err(myrank,ier)
 

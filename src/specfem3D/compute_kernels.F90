@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -41,6 +41,7 @@
   implicit none
 
   ! crust mantle
+  ! attention: cijkl_kl_crust_mantle is sorted differently on GPU and CPU
   call compute_kernels_crust_mantle()
 
   ! only information to compute the crust_mantle kernels was saved to disk
@@ -189,7 +190,7 @@
 
         ENDDO_LOOP_IJK
       enddo
-!$OMP enddo
+!$OMP ENDDO
 
     else
 
@@ -280,7 +281,7 @@
         ENDDO_LOOP_IJK
 
       enddo
-!$OMP enddo
+!$OMP ENDDO
 
     endif ! ANISOTROPIC_KL
 
@@ -311,7 +312,7 @@
               nspec_beta_kl_outer_core,deviatoric_outercore)
 
   use constants_solver
-  use specfem_par, only: deltat,hprime_xx,hprime_yy,hprime_zz,myrank
+  use specfem_par, only: deltat,hprime_xx,hprime_yy,hprime_zz
   use specfem_par, only: GPU_MODE,Mesh_pointer
 
   implicit none
@@ -367,7 +368,7 @@
     ! on CPU
 
     allocate(mask_ibool(NGLOB_OUTER_CORE),stat=ier)
-    if (ier /= 0) call exit_MPI(myrank,'Error allocating mask_ibool array in routine compute_boundary_kernels()')
+    if (ier /= 0) call exit_MPI(myrank,'Error allocating mask_ibool array in routine compute_kernels_outer_core()')
     mask_ibool(:) = .false.
 
     ! pre-calculates gradients in outer core on CPU
@@ -535,7 +536,7 @@
       ENDDO_LOOP_IJK
 
     enddo
-!$OMP enddo
+!$OMP ENDDO
 !$OMP END PARALLEL
 
     !deviatoric kernel check
@@ -786,7 +787,7 @@
       ENDDO_LOOP_IJK
 
     enddo
-!$OMP enddo
+!$OMP ENDDO
 !$OMP END PARALLEL
 
   else
@@ -818,7 +819,7 @@
   ! This then gives how the 21 kernels are organized
   ! For crust_mantle
 
-  use constants
+  use constants_solver
 
   implicit none
 
@@ -912,7 +913,7 @@
       ENDDO_LOOP_IJK
 
     enddo
-!$OMP enddo
+!$OMP ENDDO
 !$OMP END PARALLEL
 
   else

@@ -12,7 +12,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -437,7 +437,7 @@ static void initialize_ocl_device(const char *platform_filter, const char *devic
   build_kernels();
 
   // debugging
-  if (DEBUG_VERBOSE_OUTPUT){
+  if (DEBUG_KERNEL_WORK_GROUP_SIZE){
     // Get the maximum work group size for executing each kernel on the device
     // and preferred size multiple for each kernel CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE
 #undef BOAST_KERNEL
@@ -901,7 +901,7 @@ static char *trim_and_default(char *s, int max_string_length)
 
   // note: the platform_filter argument acts weird on e.g. apple platforms,
   //       giving a string "NVIDIA   Geforce", instead of just "NVIDIA" and "Geforce"
-  //       here we assume that maximum length of GPU_PLATFORM is 12 characters
+  //       here we assume that maximum length of GPU_PLATFORM is 128 characters
   // todo - find better way to avoid this?
   // debug
   //printf("string: %s has length %i \n",s,strlen(s));
@@ -935,7 +935,7 @@ void FC_FUNC_ (initialize_gpu_device,
 
   TRACE ("initialize_device");
 
-  const int STRING_LENGTH = 12; // GPU_PLATFORM and GPU_DEVICE string length (as defined in shared_par.f90 module)
+  const int STRING_LENGTH = 128; // GPU_PLATFORM and GPU_DEVICE string length (as defined in shared_par.f90 module)
 
   char *platform_filter;
   char *device_filter;

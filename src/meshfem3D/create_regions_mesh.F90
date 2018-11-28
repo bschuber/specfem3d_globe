@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -25,8 +25,7 @@
 !
 !=====================================================================
 
-  subroutine create_regions_mesh(iregion_code, &
-                                 nspec,nglob,npointot, &
+  subroutine create_regions_mesh(iregion_code,npointot, &
                                  NEX_PER_PROC_XI,NEX_PER_PROC_ETA, &
                                  NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX, &
                                  NSPEC2D_BOTTOM,NSPEC2D_TOP, &
@@ -46,6 +45,7 @@
 !
 
   use meshfem3D_par, only: &
+    nspec,nglob, &
     ibool,idoubling,xstore,ystore,zstore, &
     xstore_glob,ystore_glob,zstore_glob, &
     IMAIN,volume_total,Earth_mass_total,Earth_center_of_mass_x_total,Earth_center_of_mass_y_total,Earth_center_of_mass_z_total, &
@@ -66,7 +66,7 @@
   use meshfem3D_models_par, only: CEM_REQUEST
 #endif
 
-  use create_MPI_interfaces_par, only: &
+  use MPI_interfaces_par, only: &
     NGLOB1D_RADIAL_MAX,iboolcorner,iboolfaces, &
     iboolleft_xi,iboolright_xi,iboolleft_eta,iboolright_eta, &
     ibool1D_leftxi_lefteta,ibool1D_rightxi_lefteta, &
@@ -74,8 +74,9 @@
     xyz1D_leftxi_lefteta,xyz1D_rightxi_lefteta, &
     xyz1D_leftxi_righteta,xyz1D_rightxi_righteta
 
-  use create_regions_mesh_par
-  use create_regions_mesh_par2
+  use regions_mesh_par
+
+  use regions_mesh_par2
 
   implicit none
 
@@ -83,8 +84,7 @@
   integer,intent(in) :: iregion_code
 
   ! correct number of spectral elements in each block depending on chunk type
-  integer,intent(in) :: nspec
-  integer,intent(in) :: nglob,npointot
+  integer,intent(in) :: npointot
 
   integer :: NEX_PER_PROC_XI,NEX_PER_PROC_ETA
   integer :: NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX
@@ -122,7 +122,7 @@
     write(IMAIN,*) '  ...allocating arrays '
     call flush_IMAIN()
   endif
-  call crm_allocate_arrays(iregion_code,nspec,ipass, &
+  call crm_allocate_arrays(iregion_code,ipass, &
                            NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX, &
                            NSPEC2D_BOTTOM,NSPEC2D_TOP)
 
@@ -134,7 +134,7 @@
     write(IMAIN,*) '  ...setting up layers '
     call flush_IMAIN()
   endif
-  call crm_setup_layers(iregion_code,nspec,ipass,NEX_PER_PROC_ETA)
+  call crm_setup_layers(iregion_code,ipass,NEX_PER_PROC_ETA)
 
   !  creates mesh elements
   call synchronize_all()
@@ -143,7 +143,7 @@
     write(IMAIN,*) '  ...creating mesh elements '
     call flush_IMAIN()
   endif
-  call create_regions_elements(iregion_code,nspec,ipass, &
+  call create_regions_elements(iregion_code,ipass, &
                                NEX_PER_PROC_XI,NEX_PER_PROC_ETA, &
                                offset_proc_xi,offset_proc_eta)
 
@@ -162,7 +162,7 @@
       write(IMAIN,*) '  ...creating global addressing'
       call flush_IMAIN()
     endif
-    call crm_setup_indexing(nspec,nglob,npointot)
+    call crm_setup_indexing(npointot)
 
     ! create MPI buffers
     call synchronize_all()
@@ -171,11 +171,12 @@
       write(IMAIN,*) '  ...creating MPI buffers'
       call flush_IMAIN()
     endif
-    call crm_setup_mpi_buffers(npointot,nspec,iregion_code)
+    call crm_setup_mpi_buffers(npointot,iregion_code)
 
 
     ! sets up Stacey absorbing boundary indices (nimin,nimax,..)
-    if (NCHUNKS /= 6) call get_absorb(myrank,prname,iregion_code, iboun,nspec,nimin,nimax, &
+    if (NCHUNKS /= 6) call get_absorb(prname,iregion_code, &
+                                      iboun,nimin,nimax, &
                                       njmin,njmax, nkmin_xi,nkmin_eta, NSPEC2DMAX_XMIN_XMAX, &
                                       NSPEC2DMAX_YMIN_YMAX, NSPEC2D_BOTTOM)
 
@@ -183,9 +184,9 @@
 #ifdef CEM
     if (CEM_REQUEST) then
 
-      call build_global_coordinates (nspec, nglob, iregion_code)
-      call write_cem_request        (iregion_code)
-      call synchronize_all          ( )
+      call build_global_coordinates(iregion_code)
+      call write_cem_request(iregion_code)
+      call synchronize_all()
 
       deallocate(ibool1D_leftxi_lefteta,ibool1D_rightxi_lefteta, &
                  ibool1D_leftxi_righteta,ibool1D_rightxi_righteta, &
@@ -204,7 +205,7 @@
     ! create mass matrix and save all the final arrays in the second pass
 
     ! allocates arrays for global mesh coordinates (used for MPI interfaces setup and saving mesh outputs)
-    call crm_fill_global_meshes(nspec,nglob)
+    call crm_fill_global_meshes()
 
     ! checks time step size since now all elements have material properties assigned
     call synchronize_all()
@@ -213,7 +214,7 @@
       write(IMAIN,*) '  ...checking mesh resolution and time step'
       call flush_IMAIN()
     endif
-    call check_mesh_resolution(iregion_code,nspec,nglob,xstore,ystore,zstore, &
+    call check_mesh_resolution(iregion_code,xstore,ystore,zstore, &
                                kappavstore,kappahstore,muvstore,muhstore,rhostore)
 
     ! precomputes Jacobian for 2D absorbing boundary surfaces
@@ -223,7 +224,7 @@
       write(IMAIN,*) '  ...precomputing Jacobian'
       call flush_IMAIN()
     endif
-    call get_jacobian_boundaries(myrank,iboun,nspec,xstore,ystore,zstore, &
+    call get_jacobian_boundaries(iboun,xstore,ystore,zstore, &
                                  dershape2D_x,dershape2D_y,dershape2D_bottom,dershape2D_top, &
                                  ibelm_xmin,ibelm_xmax,ibelm_ymin,ibelm_ymax,ibelm_bottom,ibelm_top, &
                                  nspec2D_xmin,nspec2D_xmax,nspec2D_ymin,nspec2D_ymax, &
@@ -250,8 +251,8 @@
       write(IMAIN,*) '  ...creating chunk buffers'
       call flush_IMAIN()
     endif
-    call create_chunk_buffers(iregion_code,nspec,ibool,idoubling, &
-                              xstore,ystore,zstore,nglob, &
+    call create_chunk_buffers(iregion_code,ibool,idoubling, &
+                              xstore,ystore,zstore, &
                               NGLOB1D_RADIAL_CORNER,NGLOB1D_RADIAL_MAX, &
                               NGLOB2DMAX_XMIN_XMAX(iregion_code),NGLOB2DMAX_YMIN_YMAX(iregion_code))
 
@@ -299,7 +300,7 @@
 
     !uncomment: adds model smoothing for point profile models
     !    if (THREE_D_MODEL == THREE_D_MODEL_PPM) then
-    !     call smooth_model(myrank, nproc_xi,nproc_eta, &
+    !     call smooth_model(nproc_xi,nproc_eta, &
     !        rho_vp,rho_vs,nspec_stacey, &
     !        iregion_code,xixstore,xiystore,xizstore, &
     !        etaxstore,etaystore,etazstore, &
@@ -308,9 +309,6 @@
     !        kappavstore,kappahstore,muvstore,muhstore,eta_anisostore, &
     !        nspec,HETEROGEN_3D_MANTLE, &
     !        NEX_XI,NCHUNKS,ABSORBING_CONDITIONS )
-
-    ! frees allocated mesh memory
-    deallocate(xstore_glob,ystore_glob,zstore_glob)
 
     ! creates mass matrix
     call synchronize_all()
@@ -372,7 +370,7 @@
 
     ! creating mass matrices in this slice (will be fully assembled in the solver)
     ! note: for Stacey boundaries, needs indexing nimin,.. filled in the first pass
-    call create_mass_matrices(nspec,nglob,idoubling,ibool, &
+    call create_mass_matrices(idoubling,ibool, &
                               iregion_code,xstore,ystore,zstore, &
                               NSPEC2D_TOP,NSPEC2D_BOTTOM)
 
@@ -393,12 +391,12 @@
       ! saves mesh and model parameters
       if (ADIOS_FOR_ARRAYS_SOLVER) then
         if (myrank == 0) write(IMAIN,*) '    in ADIOS file format'
-        call save_arrays_solver_adios(myrank,nspec,nglob,idoubling,ibool, &
+        call save_arrays_solver_adios(idoubling,ibool, &
                                       iregion_code,xstore,ystore,zstore, &
                                       NSPEC2DMAX_XMIN_XMAX, NSPEC2DMAX_YMIN_YMAX, &
                                       NSPEC2D_TOP,NSPEC2D_BOTTOM)
       else
-        call save_arrays_solver(myrank,nspec,nglob,idoubling,ibool, &
+        call save_arrays_solver(idoubling,ibool, &
                                 iregion_code,xstore,ystore,zstore, &
                                 NSPEC2D_TOP,NSPEC2D_BOTTOM)
       endif
@@ -433,7 +431,7 @@
           write(IMAIN,*) '  ...saving AVS or DX mesh files'
           call flush_IMAIN()
         endif
-        call write_AVS_DX_output(nspec,npointot,iregion_code)
+        call write_AVS_DX_output(npointot,iregion_code)
       endif
 
     endif ! .not. GRAVITY_INTEGRALS
@@ -442,17 +440,19 @@
     deallocate(rmassx,rmassy,rmassz)
     deallocate(b_rmassx,b_rmassy)
     deallocate(rmass_ocean_load)
+    ! frees allocated mesh memory
+    deallocate(xstore_glob,ystore_glob,zstore_glob)
     ! frees MPI arrays memory
     call crm_free_MPI_arrays(iregion_code)
 
     ! compute volume, bottom and top area of that part of the slice, and then the total
-    call compute_volumes_and_areas(myrank,NCHUNKS,iregion_code,nspec,wxgll,wygll,wzgll, &
+    call compute_volumes_and_areas(NCHUNKS,iregion_code,nspec,wxgll,wygll,wzgll, &
                                    xixstore,xiystore,xizstore,etaxstore,etaystore,etazstore,gammaxstore,gammaystore,gammazstore, &
                                    NSPEC2D_BOTTOM,jacobian2D_bottom,NSPEC2D_TOP,jacobian2D_top,idoubling, &
                                    volume_total,RCMB,RICB,R_CENTRAL_CUBE)
 
     ! compute Earth mass of that part of the slice, and then total Earth mass
-    call compute_Earth_mass(myrank,Earth_mass_total, &
+    call compute_Earth_mass(Earth_mass_total, &
                             Earth_center_of_mass_x_total,Earth_center_of_mass_y_total,Earth_center_of_mass_z_total, &
                             nspec,wxgll,wygll,wzgll,xstore,ystore,zstore,xixstore,xiystore,xizstore, &
                             etaxstore,etaystore,etazstore,gammaxstore,gammaystore,gammazstore,rhostore,idoubling)
@@ -467,7 +467,7 @@
         call flush_IMAIN()
       endif
       ! compute gravity integrals of that part of the slice, and then total integrals for the whole Earth
-      call gravity_compute_integrals(myrank,iregion_code,nspec,wxgll,wygll,wzgll,xstore,ystore,zstore, &
+      call gravity_compute_integrals(iregion_code,nspec,wxgll,wygll,wzgll,xstore,ystore,zstore, &
                                      xixstore,xiystore,xizstore,etaxstore,etaystore,etazstore,gammaxstore,gammaystore,gammazstore, &
                                      rhostore,idoubling)
 
@@ -517,13 +517,14 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine crm_allocate_arrays(iregion_code,nspec,ipass, &
+  subroutine crm_allocate_arrays(iregion_code,ipass, &
                                  NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX, &
                                  NSPEC2D_BOTTOM,NSPEC2D_TOP)
 
   use constants
 
   use meshfem3D_par, only: &
+    nspec, &
     NCHUNKS,NUMCORNERS_SHARED,NUMFACES_SHARED, &
     NGLOB2DMAX_XMIN_XMAX,NGLOB2DMAX_YMIN_YMAX, &
     NGLOB1D_RADIAL,NGLOB1D_RADIAL_CORNER, &
@@ -533,12 +534,13 @@
     ATTENUATION,ANISOTROPIC_INNER_CORE,ANISOTROPIC_3D_MANTLE, &
     SAVE_BOUNDARY_MESH,AM_V
 
-  use create_regions_mesh_par2
-  use create_MPI_interfaces_par
+  use regions_mesh_par2
+
+  use MPI_interfaces_par
 
   implicit none
 
-  integer,intent(in) :: iregion_code,nspec
+  integer,intent(in) :: iregion_code
   integer,intent(in) :: ipass
 
   integer,intent(in) :: NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX
@@ -815,13 +817,14 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine crm_setup_layers(iregion_code,nspec,ipass, &
+  subroutine crm_setup_layers(iregion_code,ipass, &
                               NEX_PER_PROC_ETA)
 
   use meshfem3D_par, only: &
+    nspec, &
     ibool,idoubling,is_on_a_slice_edge, &
     xstore,ystore,zstore, &
-    myrank,NGLLX,NGLLY,NGLLZ, &
+    NGLLX,NGLLY,NGLLZ, &
     IREGION_CRUST_MANTLE,IREGION_OUTER_CORE,IREGION_INNER_CORE, &
     R670,RMOHO,R400,RMIDDLE_CRUST,MAX_NUMBER_OF_MESH_LAYERS, &
     ner,r_top,r_bottom
@@ -829,12 +832,13 @@
   use meshfem3D_models_par, only: &
     CASE_3D,SUPPRESS_CRUSTAL_MESH,ONE_CRUST,REGIONAL_MOHO_MESH
 
-  use create_regions_mesh_par
-  use create_regions_mesh_par2
+  use regions_mesh_par
+
+  use regions_mesh_par2
 
   implicit none
 
-  integer,intent(in) :: iregion_code,nspec
+  integer,intent(in) :: iregion_code
   integer,intent(in) :: ipass
   integer :: NEX_PER_PROC_ETA
 
@@ -843,10 +847,11 @@
   integer :: i,ier
 
   ! initializes element layers
-  call initialize_layers(myrank,ipass,xigll,yigll,zigll,wxgll,wygll,wzgll, &
+  call initialize_layers(ipass,xigll,yigll,zigll,wxgll,wygll,wzgll, &
                          shape3D,dershape3D,shape2D_x,shape2D_y,shape2D_bottom,shape2D_top, &
                          dershape2D_x,dershape2D_y,dershape2D_bottom,dershape2D_top, &
-                         iaddx,iaddy,iaddz,nspec,xstore,ystore,zstore,ibool,idoubling, &
+                         iaddx,iaddy,iaddz, &
+                         nspec,xstore,ystore,zstore,ibool,idoubling, &
                          iboun,iMPIcut_xi,iMPIcut_eta,ispec2D_moho_top,ispec2D_moho_bot, &
                          ispec2D_400_top,ispec2D_400_bot,ispec2D_670_top,ispec2D_670_bot, &
                          NEX_PER_PROC_ETA,nex_eta_moho,RMOHO,R400,R670,r_moho,r_400,r_670, &
@@ -906,22 +911,23 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine crm_setup_indexing(nspec,nglob,npointot)
+  subroutine crm_setup_indexing(npointot)
 
 ! creates global indexing array ibool
 
   use constants, only: NGLLX,NGLLY,NGLLZ,ZERO
 
   use meshfem3d_par, only: &
+    nspec,nglob, &
     ibool,xstore,ystore,zstore, &
     myrank
 
-  use create_regions_mesh_par2
+  use regions_mesh_par2
 
   implicit none
 
-  ! number of spectral elements in each block
-  integer,intent(in) :: nspec,npointot,nglob
+  ! number of total points
+  integer,intent(in) :: npointot
 
   ! local parameters
   ! variables for creating array ibool
@@ -950,13 +956,20 @@
 
   ! we need to create a copy of the x, y and z arrays because sorting in get_global will swap
   ! these arrays and therefore destroy them
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(ispec,ieoff,ilocnum,i,j,k)
+!$OMP DO
   do ispec = 1,nspec
     ieoff = NGLLX * NGLLY * NGLLZ * (ispec-1)
     ilocnum = 0
     do k = 1,NGLLZ
       do j = 1,NGLLY
         do i = 1,NGLLX
-          ilocnum = ilocnum + 1
+          ! increases point counter
+          !ilocnum = ilocnum + 1
+          ! without dependency
+          ilocnum = i + ((j-1) + (k-1)*NGLLY) * NGLLX
+          ! fills 1D arrays
           xp(ilocnum+ieoff) = xstore(i,j,k,ispec)
           yp(ilocnum+ieoff) = ystore(i,j,k,ispec)
           zp(ilocnum+ieoff) = zstore(i,j,k,ispec)
@@ -964,6 +977,8 @@
       enddo
     enddo
   enddo
+!$OMP ENDDO
+!$OMP END PARALLEL
 
   call get_global(npointot,xp,yp,zp,ibool,locval,ifseg,nglob_new)
 
@@ -972,8 +987,7 @@
 
   ! check that number of points found equals theoretical value
   if (nglob_new /= nglob) then
-    write(errmsg,*) 'incorrect total number of points found: myrank,nglob_new,nglob = ', &
-                    myrank,nglob_new,nglob
+    write(errmsg,*) 'incorrect total number of points found: myrank,nglob_new,nglob = ',myrank,nglob_new,nglob
     call exit_MPI(myrank,errmsg)
   endif
   if (minval(ibool) /= 1 .or. maxval(ibool) /= nglob) &
@@ -993,25 +1007,26 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine crm_setup_mpi_buffers(npointot,nspec,iregion_code)
+  subroutine crm_setup_mpi_buffers(npointot,iregion_code)
 
 ! sets up MPI cutplane arrays
 
   use meshfem3d_par, only: &
-    ibool,idoubling, &
+    nspec,ibool,idoubling, &
     xstore,ystore,zstore, &
-    myrank,NGLLX,NGLLY,NGLLZ, &
+    NGLLX,NGLLY,NGLLZ, &
     NSPEC1D_RADIAL_CORNER,NGLOB1D_RADIAL_CORNER, &
     NSPEC2D_XI_FACE,NSPEC2D_ETA_FACE, &
     NGLOB2DMAX_XMIN_XMAX,NGLOB2DMAX_YMIN_YMAX
 
-  use create_MPI_interfaces_par
-  use create_regions_mesh_par2
+  use regions_mesh_par2
+
+  use MPI_interfaces_par
 
   implicit none
 
-  ! number of spectral elements in each block
-  integer,intent(in) :: nspec,npointot
+  ! number of total points
+  integer,intent(in) :: npointot
 
   integer,intent(in) :: iregion_code
 
@@ -1034,19 +1049,19 @@
   iboolright_eta(:) = 0
 
   ! gets MPI buffer indices
-  call get_MPI_cutplanes_xi(myrank,prname,nspec,iMPIcut_xi,ibool, &
+  call get_MPI_cutplanes_xi(prname,nspec,iMPIcut_xi,ibool, &
                   xstore,ystore,zstore,mask_ibool,npointot, &
                   NSPEC2D_ETA_FACE,iregion_code,npoin2D_xi, &
                   iboolleft_xi,iboolright_xi, &
                   npoin2D_xi_all,NGLOB2DMAX_XMIN_XMAX(iregion_code))
 
-  call get_MPI_cutplanes_eta(myrank,prname,nspec,iMPIcut_eta,ibool, &
+  call get_MPI_cutplanes_eta(prname,nspec,iMPIcut_eta,ibool, &
                   xstore,ystore,zstore,mask_ibool,npointot, &
                   NSPEC2D_XI_FACE,iregion_code,npoin2D_eta, &
                   iboolleft_eta,iboolright_eta, &
                   npoin2D_eta_all,NGLOB2DMAX_YMIN_YMAX(iregion_code))
 
-  call get_MPI_1D_buffers(myrank,prname,nspec,iMPIcut_xi,iMPIcut_eta, &
+  call get_MPI_1D_buffers(prname,nspec,iMPIcut_xi,iMPIcut_eta, &
                   ibool,idoubling, &
                   xstore,ystore,zstore,mask_ibool,npointot, &
                   NSPEC1D_RADIAL_CORNER,NGLOB1D_RADIAL_CORNER,iregion_code, &
@@ -1068,7 +1083,7 @@
 
   subroutine crm_free_MPI_arrays(iregion_code)
 
-  use create_MPI_interfaces_par
+  use MPI_interfaces_par
 
   use MPI_crust_mantle_par
   use MPI_outer_core_par
@@ -1101,7 +1116,7 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine crm_fill_global_meshes(nspec,nglob)
+  subroutine crm_fill_global_meshes()
 
 ! fills in global mesh arrays
 ! (defines on global points xstore_glob(iglob) rather than locally as in xstore(i,j,k,ispec))
@@ -1109,12 +1124,11 @@
   use constants, only: CUSTOM_REAL,NGLLX,NGLLY,NGLLZ
 
   use meshfem3D_par, only: &
+    nspec,nglob, &
     myrank,ibool,xstore,ystore,zstore, &
     xstore_glob,ystore_glob,zstore_glob
 
   implicit none
-
-  integer,intent(in):: nspec,nglob
 
   ! local parameters
   integer :: i,j,k,ispec,iglob,ier

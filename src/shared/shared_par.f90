@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -28,6 +28,9 @@
   module constants
 
   include "constants.h"
+
+  ! proc number for MPI process
+  integer :: myrank
 
   ! a negative initial value is a convention that indicates that groups
   ! (i.e. sub-communicators, one per run) are off by default
@@ -61,11 +64,17 @@
 
   double precision :: RECORD_LENGTH_IN_MINUTES
 
-  logical :: RECEIVERS_CAN_BE_BURIED,PRINT_SOURCE_TIME_FUNCTION
+  logical :: RECEIVERS_CAN_BE_BURIED
   logical :: OUTPUT_SEISMOS_ASCII_TEXT,OUTPUT_SEISMOS_SAC_ALPHANUM,OUTPUT_SEISMOS_SAC_BINARY, &
              OUTPUT_SEISMOS_ASDF, &
              ROTATE_SEISMOGRAMS_RT,WRITE_SEISMOGRAMS_BY_MASTER, &
              SAVE_ALL_SEISMOS_IN_ONE_FILE,USE_BINARY_FOR_LARGE_FILE,READ_ADJSRC_ASDF
+
+  logical :: SAVE_SEISMOGRAMS_STRAIN,SAVE_SEISMOGRAMS_IN_ADJOINT_RUN
+
+  ! sources
+  logical :: USE_FORCE_POINT_SOURCE
+  logical :: USE_RICKER_TIME_FUNCTION,PRINT_SOURCE_TIME_FUNCTION
 
   ! checkpointing/restart
   integer :: NUMBER_OF_RUNS,NUMBER_OF_THIS_RUN
@@ -125,8 +134,8 @@
 
   ! GPU simulations
   integer :: GPU_RUNTIME
-  character(len=12) :: GPU_PLATFORM
-  character(len=12) :: GPU_DEVICE
+  character(len=128) :: GPU_PLATFORM
+  character(len=128) :: GPU_DEVICE
   logical :: GPU_MODE
 
   ! adios file output
@@ -177,34 +186,38 @@
   ! radii of layers
   double precision :: ROCEAN,RMIDDLE_CRUST,RMOHO,R80,R120,R220,R400, &
                       R600,R670,R771,RTOPDDOUBLEPRIME,RCMB,RICB, &
-                      R_CENTRAL_CUBE,RHO_TOP_OC,RHO_BOTTOM_OC,RHO_OCEANS, &
+                      R_CENTRAL_CUBE, &
                       RMOHO_FICTITIOUS_IN_MESHER,R80_FICTITIOUS_IN_MESHER
+
+  ! densities
+  double precision :: RHO_TOP_OC,RHO_BOTTOM_OC,RHO_OCEANS
 
   ! movies
   double precision :: MOVIE_TOP,MOVIE_BOTTOM,MOVIE_EAST,MOVIE_WEST, &
                       MOVIE_NORTH,MOVIE_SOUTH
   ! model flags
-  integer :: REFERENCE_1D_MODEL,THREE_D_MODEL
+  integer :: REFERENCE_1D_MODEL,REFERENCE_CRUSTAL_MODEL,THREE_D_MODEL
+
   logical :: TRANSVERSE_ISOTROPY,ANISOTROPIC_3D_MANTLE,ANISOTROPIC_INNER_CORE, &
              CRUSTAL,ONE_CRUST,ISOTROPIC_3D_MANTLE,HETEROGEN_3D_MANTLE, &
              CEM_REQUEST,CEM_ACCEPT
   logical :: ATTENUATION_3D
   logical :: INCLUDE_CENTRAL_CUBE,INFLATE_CENTRAL_CUBE
-  logical :: EMULATE_ONLY = .false.
 
+  logical :: EMULATE_ONLY = .false.
 
 ! honor PREM Moho or not
 ! doing so drastically reduces the stability condition and therefore the time step
   logical :: HONOR_1D_SPHERICAL_MOHO,CASE_3D
 
   ! this for all the regions
-  integer, dimension(MAX_NUM_REGIONS) :: NSPEC
+  integer, dimension(MAX_NUM_REGIONS) :: NSPEC_REGIONS
   integer, dimension(MAX_NUM_REGIONS) :: NSPEC2D_XI,NSPEC2D_ETA
   integer, dimension(MAX_NUM_REGIONS) :: NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX
   integer, dimension(MAX_NUM_REGIONS) :: NSPEC2D_BOTTOM,NSPEC2D_TOP
   integer, dimension(MAX_NUM_REGIONS) :: NSPEC1D_RADIAL
 
-  integer, dimension(MAX_NUM_REGIONS) :: NGLOB
+  integer, dimension(MAX_NUM_REGIONS) :: NGLOB_REGIONS
   integer, dimension(MAX_NUM_REGIONS) :: NGLOB2DMAX_XMIN_XMAX,NGLOB2DMAX_YMIN_YMAX
   integer, dimension(MAX_NUM_REGIONS) :: NGLOB1D_RADIAL
 

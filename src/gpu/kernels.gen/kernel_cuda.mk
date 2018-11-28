@@ -15,6 +15,7 @@ cuda_kernels_OBJS := \
 	$O/compute_iso_kernel.cuda-kernel.o \
 	$O/compute_iso_undoatt_kernel.cuda-kernel.o \
 	$O/compute_rho_kernel.cuda-kernel.o \
+	$O/compute_seismograms_kernel.cuda-kernel.o \
 	$O/compute_stacey_acoustic_backward_kernel.cuda-kernel.o \
 	$O/compute_stacey_acoustic_kernel.cuda-kernel.o \
 	$O/compute_stacey_elastic_backward_kernel.cuda-kernel.o \
@@ -34,6 +35,7 @@ cuda_kernels_OBJS := \
 	$O/outer_core_impl_kernel_forward.cuda-kernel.o \
 	$O/prepare_boundary_accel_on_device.cuda-kernel.o \
 	$O/prepare_boundary_potential_on_device.cuda-kernel.o \
+	$O/resort_array.cuda-kernel.o \
 	$O/update_accel_acoustic_kernel.cuda-kernel.o \
 	$O/update_accel_elastic_kernel.cuda-kernel.o \
 	$O/update_disp_veloc_kernel.cuda-kernel.o \

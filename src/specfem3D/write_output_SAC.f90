@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -43,7 +43,7 @@
 
   use specfem_par, only: &
           yr => yr_SAC,jda => jda_SAC,ho => ho_SAC,mi => mi_SAC,sec => sec_SAC, &
-          tshift_cmt => t_cmt_SAC,t_shift => t_shift_SAC, &
+          tshift_src => t_cmt_SAC,t_shift => t_shift_SAC, &
           elat => elat_SAC,elon => elon_SAC,depth => depth_SAC, &
           event_name => event_name_SAC,cmt_lat => cmt_lat_SAC,cmt_lon => cmt_lon_SAC, &
           cmt_depth => cmt_depth_SAC,cmt_hdur => cmt_hdur_SAC
@@ -164,7 +164,7 @@
   ODELTA = undef       ! increment from delta
 
   ! begin time
-  btime = (seismo_offset)*DT - t0 + tshift_cmt
+  btime = (seismo_offset)*DT - t0 + tshift_src
 
   B      = sngl(btime) ! [REQUIRED]
   E      = BYSAC       ! [REQUIRED]

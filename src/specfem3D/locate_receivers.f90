@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -857,15 +857,15 @@
       if (DISPLAY_DETAILS_STATIONS .or. final_distance(irec) > 0.01d0) then
         write(IMAIN,*)
         write(IMAIN,*) 'Station #',irec,': ',trim(network_name(irec))//'.'//trim(station_name(irec))
-        write(IMAIN,*) '     original latitude: ',sngl(stlat(irec))
-        write(IMAIN,*) '    original longitude: ',sngl(stlon(irec))
-        write(IMAIN,*) '   epicentral distance: ',sngl(epidist(irec))
-        write(IMAIN,*) 'closest estimate found: ',sngl(final_distance(irec)),' km away'
-        write(IMAIN,*) ' in slice ',islice_selected_rec(irec),' in element ',ispec_selected_rec(irec)
-        write(IMAIN,*) ' at xi,eta,gamma coordinates = ',xi_receiver(irec),eta_receiver(irec),gamma_receiver(irec)
+        write(IMAIN,*) '       original latitude: ',sngl(stlat(irec))
+        write(IMAIN,*) '      original longitude: ',sngl(stlon(irec))
+        write(IMAIN,*) '     epicentral distance: ',sngl(epidist(irec))
+        write(IMAIN,*) '  closest estimate found: ',sngl(final_distance(irec)),' km away'
+        write(IMAIN,*) '   in slice ',islice_selected_rec(irec),' in element ',ispec_selected_rec(irec)
+        write(IMAIN,*) '   at xi,eta,gamma coordinates = ',xi_receiver(irec),eta_receiver(irec),gamma_receiver(irec)
         ! converts geocentric coordinates x/y/z to geographic radius/latitude/longitude (in degrees)
         call xyz_2_rlatlon_dble(x_found(irec),y_found(irec),z_found(irec),r,lat,lon)
-        write(IMAIN,*) ' at lat/lon = ',sngl(lat),sngl(lon)
+        write(IMAIN,*) '   at lat/lon = ',sngl(lat),sngl(lon)
       endif
 
       ! add warning if estimate is poor

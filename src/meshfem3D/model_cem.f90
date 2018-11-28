@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -65,17 +65,16 @@ end module cem_par
 !-------------------------------------------------------------------------------------------
 !
 
-  subroutine model_cem_broadcast (myrank)
+  subroutine model_cem_broadcast()
 
+  use constants, only: myrank
   use cem_par
   use netcdf
   use meshfem3D_models_par, only: CEM_ACCEPT
 
-  integer, intent (in) :: myrank
   integer              :: wSize
 
   ! initializes
-
   rank = myrank
   call world_size (wSize)
 
@@ -225,11 +224,10 @@ end module cem_par
   integer, dimension (NDIMS_WRITE) :: start, count, ids
 
   integer :: ncid, paramDimID, procDimID, varidX, varidY, varidZ
-  integer :: varidR, iregion_code, commWorldSize, Comm, myRank, info
+  integer :: varidR, iregion_code, commWorldSize, Comm, info
   character (len = MAX_STRING_LEN) :: fileName, fileNameTrim, formatString
 
   ! Get the total number of processors.
-  call world_rank(myRank)
   call world_size(commWorldSize)
   call world_duplicate(Comm)
   call world_get_info_null(info)
@@ -279,17 +277,18 @@ end module cem_par
 !
 
 
-  subroutine build_global_coordinates (nspec, nglob, iregion_code)
+  subroutine build_global_coordinates (iregion_code)
 
   use constants
   use cem_par
 
   use meshfem3D_par, only: &
+    nspec, nglob, &
     ibool,xstore,ystore,zstore
 
   implicit none
 
-  integer, intent (in) :: nspec, nglob, iregion_code
+  integer, intent (in) :: iregion_code
   integer              :: i, j, k, iglob, ispec, region
 
   double precision, parameter :: R_020_KM=6351.0d0, R_052_KM=6319.0d0

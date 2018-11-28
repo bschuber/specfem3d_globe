@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -199,6 +199,7 @@
   ! outer core
   if (SIMULATION_TYPE == 3 ) nullify(b_rmass_outer_core)
   deallocate(rstore_outer_core)
+  deallocate(gravity_pre_store_outer_core)
 
   ! inner core
   if (ROTATION_VAL .and. EXACT_MASS_MATRIX_FOR_ROTATION_VAL) then
@@ -206,6 +207,7 @@
   else
     nullify(rmassx_inner_core,rmassy_inner_core)
   endif
+
   if (SIMULATION_TYPE == 3) then
     if (ROTATION_VAL .and. EXACT_MASS_MATRIX_FOR_ROTATION_VAL) then
       deallocate(b_rmassx_inner_core,b_rmassy_inner_core)
@@ -233,11 +235,11 @@
                b_request_send_vector_ic,b_request_recv_vector_ic)
   endif
 
-  deallocate(my_neighbours_crust_mantle,nibool_interfaces_crust_mantle)
+  deallocate(my_neighbors_crust_mantle,nibool_interfaces_crust_mantle)
   deallocate(ibool_interfaces_crust_mantle)
-  deallocate(my_neighbours_outer_core,nibool_interfaces_outer_core)
+  deallocate(my_neighbors_outer_core,nibool_interfaces_outer_core)
   deallocate(ibool_interfaces_outer_core)
-  deallocate(my_neighbours_inner_core,nibool_interfaces_inner_core)
+  deallocate(my_neighbors_inner_core,nibool_interfaces_inner_core)
   deallocate(ibool_interfaces_inner_core)
 
   ! inner/outer elements
@@ -255,15 +257,23 @@
              ispec_selected_source, &
              Mxx,Myy,Mzz,Mxy,Mxz,Myz)
   deallocate(xi_source,eta_source,gamma_source)
-  deallocate(tshift_cmt,hdur,hdur_Gaussian)
+  deallocate(tshift_src,hdur,hdur_Gaussian)
   deallocate(nu_source)
+  ! point force source
+  if (USE_FORCE_POINT_SOURCE) then
+    deallocate(force_stf)
+    deallocate(factor_force_source)
+    deallocate(comp_dir_vect_source_E)
+    deallocate(comp_dir_vect_source_N)
+    deallocate(comp_dir_vect_source_Z_UP)
+  endif
 
   if (SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) deallocate(sourcearrays)
   if (SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3) then
     deallocate(iadj_vec)
     if (nadj_rec_local > 0) then
-      deallocate(adj_sourcearrays)
-      if (IO_ASYNC_COPY .and. NSTEP_SUB_ADJ > 1 ) deallocate(buffer_sourcearrays)
+      deallocate(source_adjoint)
+      if (IO_ASYNC_COPY .and. NSTEP_SUB_ADJ > 1 ) deallocate(buffer_source_adjoint)
       deallocate(iadjsrc,iadjsrc_len)
     endif
   endif
@@ -309,6 +319,12 @@
                mask_noise,noise_surface_movie)
     ! file i/o buffer
     deallocate(noise_buffer)
+  endif
+
+  ! oceans
+  if (OCEANS_VAL) then
+    ! frees memory
+    deallocate(ibool_ocean_load,rmass_ocean_load_selected,normal_ocean_load)
   endif
 
   ! VTK visualization

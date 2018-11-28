@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -74,7 +74,7 @@
 !--------------------------------------------------------------------------------------------------
 !
 
-  subroutine model_crust_1_0_broadcast(myrank)
+  subroutine model_crust_1_0_broadcast()
 
 ! standard routine to setup model
 
@@ -83,7 +83,6 @@
 
   implicit none
 
-  integer :: myrank
   integer :: ier
 
   ! allocate crustal arrays
@@ -594,7 +593,7 @@
   vptyp(:) = crust_vp(:,icolat,ilon)
   vstyp(:) = crust_vs(:,icolat,ilon)
   rhtyp(:) = crust_rho(:,icolat,ilon)
-  thtp(:) = crust_thickness(:,icolat,ilon)
+  thtp(:)  = crust_thickness(:,icolat,ilon)
 
   ! get distance to Moho from the bottom of the ocean or the ice
   ! value could be used for checking, but is unused so far...

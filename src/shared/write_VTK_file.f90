@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -27,7 +27,7 @@
 
 ! note: this might be a possible bug in gfortran with -mcmodel=medium on cray,
 !       but the write statement
-!         write(IOUT_VTK,*) ""
+!         write(IOUT_VTK,*) ''
 !       produces errors, relocation truncated to fit: R_X86_64_32 against `.lrodata'
 !       this can be fixed by using
 !         write(IOUT_VTK,*)
@@ -861,7 +861,7 @@
   do i=1,nglob
     write(IOUT_VTK,'(3e18.6)') xstore_dummy(i),ystore_dummy(i),zstore_dummy(i)
   enddo
-  write(IOUT_VTK,*) ""
+  write(IOUT_VTK,*) ''
 
   ! note: indices for vtk start at 0
   write(IOUT_VTK,'(a,i12,i12)') "CELLS ",nspec,nspec*9
@@ -870,12 +870,12 @@
           ibool(1,1,1,ispec)-1,ibool(NGLLX,1,1,ispec)-1,ibool(NGLLX,NGLLY,1,ispec)-1,ibool(1,NGLLY,1,ispec)-1, &
           ibool(1,1,NGLLZ,ispec)-1,ibool(NGLLX,1,NGLLZ,ispec)-1,ibool(NGLLX,NGLLY,NGLLZ,ispec)-1,ibool(1,NGLLY,NGLLZ,ispec)-1
   enddo
-  write(IOUT_VTK,*) ""
+  write(IOUT_VTK,*) ''
 
   ! type: hexahedrons
   write(IOUT_VTK,'(a,i12)') "CELL_TYPES ",nspec
   write(IOUT_VTK,'(6i12)') (12,ispec=1,nspec)
-  write(IOUT_VTK,*) ""
+  write(IOUT_VTK,*) ''
 
   write(IOUT_VTK,'(a,i12)') "CELL_DATA ",nspec
   write(IOUT_VTK,'(a)') "SCALARS elem_val float"
@@ -883,7 +883,7 @@
   do ispec = 1,nspec
     write(IOUT_VTK,*) elem_data(ispec)
   enddo
-  write(IOUT_VTK,*) ""
+  write(IOUT_VTK,*) ''
   close(IOUT_VTK)
 
   end subroutine write_VTK_data_elem_cr

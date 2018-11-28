@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -74,7 +74,7 @@
 
   ! starts here--------------------------------------------------------------------------------------------------
   do i = 1, 6
-    call getarg(i,arg(i))
+    call get_command_argument(i,arg(i))
     if (i < 6 .and. trim(arg(i)) == '') then
       print *, ' '
       print *, ' Usage: xcreate_slice_VTK slice_list filename input_topo_dir input_file_dir output_dir [region]'
@@ -308,7 +308,7 @@
     i = ibool(1,NGLLY,NGLLZ,ispec)
     write(IOUT_VTK,'(3e18.6)') xstore_dummy(i),ystore_dummy(i),zstore_dummy(i)
   enddo
-  write(IOUT_VTK,*) ""
+  write(IOUT_VTK,*) ''
 
   ! note: indices for vtk start at 0
   write(IOUT_VTK,'(a,i12,i12)') "CELLS ",nspec,nspec*9
@@ -316,12 +316,12 @@
     write(IOUT_VTK,'(9i12)') 8,(ispec-1)*8,(ispec-1)*8+1,(ispec-1)*8+2,(ispec-1)*8+3, &
           (ispec-1)*8+4,(ispec-1)*8+5,(ispec-1)*8+6,(ispec-1)*8+7
   enddo
-  write(IOUT_VTK,*) ""
+  write(IOUT_VTK,*) ''
 
   ! type: hexahedrons
   write(IOUT_VTK,'(a,i12)') "CELL_TYPES ",nspec
   write(IOUT_VTK,'(6i12)') (12,ispec=1,nspec)
-  write(IOUT_VTK,*) ""
+  write(IOUT_VTK,*) ''
 
   ! writes out gll-data (velocity) for each element point
   write(IOUT_VTK,'(a,i12)') "POINT_DATA ",nspec*8
@@ -352,7 +352,7 @@
     i = ibool(1,NGLLY,NGLLZ,ispec)-1
     write(IOUT_VTK,'(3e18.6)') gll_data(1,NGLLY,NGLLZ,ispec)
   enddo
-  write(IOUT_VTK,*) ""
+  write(IOUT_VTK,*) ''
 
   close(IOUT_VTK)
 

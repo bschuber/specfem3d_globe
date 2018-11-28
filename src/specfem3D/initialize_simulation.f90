@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -75,7 +75,7 @@
   endif
 
   ! broadcast parameters read from master to all processes
-  call broadcast_computed_parameters(myrank)
+  call broadcast_computed_parameters()
 
   ! check that the code is running with the requested nb of processes
   if (sizeprocs /= NPROCTOT) then
@@ -175,7 +175,7 @@
       write(IMAIN,*) '  no crustal variations'
     endif
     if (ONE_CRUST) then
-      write(IMAIN,*) '  using one layer only in PREM crust'
+      write(IMAIN,*) '  using one layer only in crust'
     else
       write(IMAIN,*) '  using unmodified 1D crustal model with two layers'
     endif
@@ -276,6 +276,9 @@
     call asdf_setup(current_asdf_handle, path_to_add, simul_run_flag)
   endif
 
+  ! output info for possible OpenMP
+  call init_openmp()
+
   ! synchronizes processes
   call synchronize_all()
 
@@ -291,19 +294,19 @@
   implicit none
 
   ! check that the code has been compiled with the right values
-  if (NSPEC(IREGION_CRUST_MANTLE) /= NSPEC_CRUST_MANTLE) then
-      if (myrank == 0) write(IMAIN,*) 'NSPEC_CRUST_MANTLE:',NSPEC(IREGION_CRUST_MANTLE),NSPEC_CRUST_MANTLE
-      write(*,*) 'NSPEC_CRUST_MANTLE:', NSPEC(IREGION_CRUST_MANTLE), NSPEC_CRUST_MANTLE
+  if (NSPEC_REGIONS(IREGION_CRUST_MANTLE) /= NSPEC_CRUST_MANTLE) then
+      if (myrank == 0) write(IMAIN,*) 'NSPEC_CRUST_MANTLE:',NSPEC_REGIONS(IREGION_CRUST_MANTLE),NSPEC_CRUST_MANTLE
+      write(*,*) 'NSPEC_CRUST_MANTLE:', NSPEC_REGIONS(IREGION_CRUST_MANTLE), NSPEC_CRUST_MANTLE
       call exit_MPI(myrank,'Error in compiled parameters, please recompile solver 1')
   endif
-  if (NSPEC(IREGION_OUTER_CORE) /= NSPEC_OUTER_CORE) then
-      if (myrank == 0) write(IMAIN,*) 'NSPEC_OUTER_CORE:',NSPEC(IREGION_OUTER_CORE),NSPEC_OUTER_CORE
-      write(*,*) 'NSPEC_OUTER_CORE:', NSPEC(IREGION_OUTER_CORE), NSPEC_OUTER_CORE
+  if (NSPEC_REGIONS(IREGION_OUTER_CORE) /= NSPEC_OUTER_CORE) then
+      if (myrank == 0) write(IMAIN,*) 'NSPEC_OUTER_CORE:',NSPEC_REGIONS(IREGION_OUTER_CORE),NSPEC_OUTER_CORE
+      write(*,*) 'NSPEC_OUTER_CORE:', NSPEC_REGIONS(IREGION_OUTER_CORE), NSPEC_OUTER_CORE
       call exit_MPI(myrank,'Error in compiled parameters, please recompile solver 2')
   endif
-  if (NSPEC(IREGION_INNER_CORE) /= NSPEC_INNER_CORE) then
-      if (myrank == 0) write(IMAIN,*) 'NSPEC_INNER_CORE:',NSPEC(IREGION_INNER_CORE),NSPEC_INNER_CORE
-      write(*,*) 'NSPEC_INNER_CORE:', NSPEC(IREGION_INNER_CORE), NSPEC_INNER_CORE
+  if (NSPEC_REGIONS(IREGION_INNER_CORE) /= NSPEC_INNER_CORE) then
+      if (myrank == 0) write(IMAIN,*) 'NSPEC_INNER_CORE:',NSPEC_REGIONS(IREGION_INNER_CORE),NSPEC_INNER_CORE
+      write(*,*) 'NSPEC_INNER_CORE:', NSPEC_REGIONS(IREGION_INNER_CORE), NSPEC_INNER_CORE
       call exit_MPI(myrank,'Error in compiled parameters, please recompile solver 3')
   endif
   if (ATTENUATION_3D .neqv. ATTENUATION_3D_VAL) then
@@ -521,7 +524,7 @@
   subroutine initialize_GPU()
 
 ! initialization for GPU cards
-
+  use iso_c_binding
   use specfem_par
   implicit none
   ! local parameters
@@ -595,7 +598,7 @@
     endif
 
     ! initializes GPU and outputs info to files for all processes
-    call initialize_gpu_device(GPU_RUNTIME,GPU_PLATFORM,GPU_DEVICE,myrank,ngpu_devices)
+    call initialize_gpu_device(GPU_RUNTIME,trim(GPU_PLATFORM)//C_NULL_CHAR,trim(GPU_DEVICE)//C_NULL_CHAR,myrank,ngpu_devices)
   endif
 
   ! collects min/max of local devices found for statistics

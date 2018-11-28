@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -143,16 +143,16 @@
 !               lmxhpa,itypehpa,ihpakern,numcoe,ivarkern, &
 !               nconpt,iver,iconpt,conpt,xlaspl,xlospl,radspl, &
 !               coe,vercof,vercofd,ylmcof,wk1,wk2,wk3,kerstr,varstr)
-!  write(6,"('    dvsh      dvsv      dvph      dvpv    ')")
-!  write(6,"(6f10.5)") 100.0*dvsh,100.0*dvsv,100.0*dvph,100.0*dvpv
+!  write(*,"('    dvsh      dvsv      dvph      dvpv    ')")
+!  write(*,"(6f10.5)") 100.0*dvsh,100.0*dvsv,100.0*dvph,100.0*dvpv
 !
 !  call subtopo(xcolat,xlon,topo410,topo650, &
 !               numker,numhpa,numcof,ihpa,lmax,nylm, &
 !               lmxhpa,itypehpa,ihpakern,numcoe,ivarkern, &
 !               nconpt,iver,iconpt,conpt,xlaspl,xlospl,radspl, &
 !               coe,ylmcof,wk1,wk2,wk3,varstr)
-!  write(6,"('   topo410    topo650 ')")
-!  write(6,"(2f11.5)") topo410,topo650
+!  write(*,"('   topo410    topo650 ')")
+!  write(*,"(2f11.5)") topo410,topo650
 !
 
 ! ocean-continent function (km)

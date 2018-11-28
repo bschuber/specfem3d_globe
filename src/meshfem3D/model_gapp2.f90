@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -48,7 +48,7 @@
 !--------------------------------------------------------------------------------------------------
 !
 
-  subroutine model_gapp2_broadcast(myrank)
+  subroutine model_gapp2_broadcast()
 
 ! standard routine to setup model
 
@@ -57,7 +57,6 @@
 
   implicit none
 
-  integer :: myrank
   integer :: ier
 
   ! allocates arrays only when called and needed
@@ -206,8 +205,8 @@
 
   call d2id(d,nnr,dep,id,icon)
   if (icon /= 0) then
-     write(6,*)icon
-     write(6,*) radius,theta,phi,dvp,dvs,drho
+     write(*,*)icon
+     write(*,*) radius,theta,phi,dvp,dvs,drho
   endif
 
   ! latitude

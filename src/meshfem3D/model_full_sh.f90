@@ -11,7 +11,7 @@
 !
 ! This program is free software; you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
+! the Free Software Foundation; either version 3 of the License, or
 ! (at your option) any later version.
 !
 ! This program is distributed in the hope that it will be useful,
@@ -56,17 +56,15 @@
 !-----------------------------------------------------------------------------------------
 !
 
-  subroutine model_crust_sh_broadcast(myrank)
+  subroutine model_crust_sh_broadcast()
 
 ! standard routine to setup model
 
-  use constants, only: IMAIN
+  use constants, only: IMAIN,myrank
 
   use model_full_sh_crust_par
 
   implicit none
-
-  integer :: myrank
 
   ! local parameters
   integer :: ier
@@ -122,9 +120,6 @@
   ! for moho statistics
   integer :: i,j
   real(kind=4) :: shcof(NSH_40)
-  real(kind=4) :: work1(NS_40+1)
-  real(kind=4) :: work2(NS_40+1)
-  real(kind=4) :: work3(NS_40+1)
   real(kind=4) :: xlat,xlon
   double precision :: moho,moho_min,moho_max
 
@@ -232,7 +227,7 @@
       ! lat/lon in degrees
       xlat = i * 1.0
       xlon = j * 1.0
-      call ylm(xlat,xlon,NS_40,shcof,work1,work2,work3)
+      call ylm(xlat,xlon,NS_40,shcof)
 
       ! gets moho depth (in km)
       moho = ZERO
@@ -282,15 +277,12 @@
   double precision :: depth,scaleval
   integer :: l
   real(kind=4) :: shcof(NSH_40)
-  real(kind=4) :: work1(NS_40+1)
-  real(kind=4) :: work2(NS_40+1)
-  real(kind=4) :: work3(NS_40+1)
   real(kind=4) :: xlat,xlon
 
   ! gets coefficient for location
   xlat = sngl(lat)
   xlon = sngl(lon)
-  call ylm(xlat,xlon,NS_40,shcof,work1,work2,work3)
+  call ylm(xlat,xlon,NS_40,shcof)
 
   ! calculates model values
   vsvc = ZERO !km/s
@@ -390,17 +382,16 @@
 !-----------------------------------------------------------------------------------------
 !
 
-  subroutine model_mantle_sh_broadcast(myrank)
+  subroutine model_mantle_sh_broadcast()
 
 ! standard routine to setup model
 
-  use constants, only: IMAIN
+  use constants, only: IMAIN,myrank
 
   use model_full_sh_mantle_par
 
   implicit none
 
-  integer :: myrank
   integer :: ier
 
   ! model_mantle_sh_variables
@@ -467,9 +458,6 @@
   ! for statistics
   integer :: i,j
   real(kind=4) :: shcof(NSH_20)
-  real(kind=4) :: work1(NS_20+1)
-  real(kind=4) :: work2(NS_20+1)
-  real(kind=4) :: work3(NS_20+1)
   real(kind=4) :: xlat,xlon
   double precision :: cmb,cmb_min,cmb_max
   double precision :: t410,t410_min,t410_max
@@ -654,7 +642,7 @@
       ! lat/lon in degrees
       xlat = i * 1.0
       xlon = j * 1.0
-      call ylm(xlat,xlon,NS_20,shcof,work1,work2,work3)
+      call ylm(xlat,xlon,NS_20,shcof)
 
       ! gets topos (in km)
       t410 = ZERO
@@ -711,9 +699,6 @@
   double precision :: r_moho,r_cmb,xr
   double precision :: mantle_sh_rsple,radial_basis(0:NK_20),xmap(NSH_20)
   real(kind=4) :: shcof(NSH_20)
-  real(kind=4) :: work1(NS_20+1)
-  real(kind=4) :: work2(NS_20+1)
-  real(kind=4) :: work3(NS_20+1)
   real(kind=4) :: xlat,xlon
 
   dvsv = ZERO
@@ -730,7 +715,7 @@
   ! get spherical harmonics coefficients
   xlat = sngl(lat)
   xlon = sngl(lon)
-  call ylm(xlat,xlon,NS_20,shcof,work1,work2,work3)
+  call ylm(xlat,xlon,NS_20,shcof)
 
   xr = -1.0d0+2.0d0*(radius-r_cmb)/(r_moho-r_cmb)
   do k = 0,NK_20
@@ -1066,15 +1051,13 @@
 
 ! added by JT 2015
 
-  subroutine add_topography_sh_mantle(myrank,xelm,yelm,zelm)
+  subroutine add_topography_sh_mantle(xelm,yelm,zelm)
 
   use constants
 
   use meshfem3D_par, only: R220,R400,R670,R771
 
   implicit none
-
-  integer :: myrank
 
   double precision :: xelm(NGNOD)
   double precision :: yelm(NGNOD)
@@ -1207,24 +1190,21 @@
 
   subroutine subtopo_sh(lat,lon,topo410,topo660)
 
-  use model_full_sh_mantle_par
+  use model_full_sh_mantle_par, only: NSH_20,NS_20,MANTLE_SH_V_t410,MANTLE_SH_V_t660
 
   implicit none
 
-  double precision :: lat,lon
-  double precision :: topo410,topo660
+  double precision,intent(in) :: lat,lon
+  double precision,intent(out) :: topo410,topo660
 
   ! local parameter
   integer :: l
   real(kind=4) :: shcof(NSH_20)
-  real(kind=4) :: work1(NS_20+1)
-  real(kind=4) :: work2(NS_20+1)
-  real(kind=4) :: work3(NS_20+1)
   real(kind=4) :: xlat,xlon
 
   xlat = sngl(lat)
   xlon = sngl(lon)
-  call ylm(xlat,xlon,NS_20,shcof,work1,work2,work3)
+  call ylm(xlat,xlon,NS_20,shcof)
 
   topo410 = 0.d0
   topo660 = 0.d0
@@ -1239,7 +1219,7 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine add_topography_sh_cmb(myrank,xelm,yelm,zelm)
+  subroutine add_topography_sh_cmb(xelm,yelm,zelm)
 
 ! this is only a placeholder function, which is not used yet...user must supply the subtopo_cmb() routine
 
@@ -1248,8 +1228,6 @@
   use shared_parameters, only: RCMB,RTOPDDOUBLEPRIME
 
   implicit none
-
-  integer,intent(in) :: myrank
 
   double precision,intent(inout) :: xelm(NGNOD)
   double precision,intent(inout) :: yelm(NGNOD)
@@ -1261,9 +1239,7 @@
 
   ! local parameters
   integer :: ia
-
   double precision :: r_start,topocmb
-
   double precision :: r,lat,lon
   double precision :: x,y,z
   double precision :: gamma
@@ -1293,7 +1269,7 @@
     topocmb = -topocmb / R_EARTH_KM
 
     ! start stretching a distance RTOPDDOUBLEPRIME - RCMB below the CMB
-    ! and finish at RTOPDDOUBLEPRIME (D'')
+    ! and finish at RTOPDDOUBLEPRIME of D_double_prime
     r_start = (RCMB - (RTOPDDOUBLEPRIME - RCMB))/R_EARTH
     gamma = 0.0d0
     if (r >= RCMB/R_EARTH .and. r <= RTOPDDOUBLEPRIME/R_EARTH) then
@@ -1325,7 +1301,7 @@
 !  RTOPDDOUBLEPRIME = 3630000.d0
 !  RCMB = 3480000.d0
 
-  use model_full_sh_mantle_par
+  use model_full_sh_mantle_par, only: NSH_20,NS_20,MANTLE_SH_V_tcmb
 
   implicit none
 
@@ -1335,14 +1311,11 @@
   ! local parameters
   integer :: l
   real(kind=4) :: shcof(NSH_20)
-  real(kind=4) :: work1(NS_20+1)
-  real(kind=4) :: work2(NS_20+1)
-  real(kind=4) :: work3(NS_20+1)
   real(kind=4) :: xlat,xlon
 
   xlat = sngl(lat)
   xlon = sngl(lon)
-  call ylm(xlat,xlon,NS_20,shcof,work1,work2,work3)
+  call ylm(xlat,xlon,NS_20,shcof)
 
   topocmb = 0.0d0
   do l = 1,NSH_20
