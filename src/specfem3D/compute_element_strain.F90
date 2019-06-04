@@ -868,3 +868,135 @@
 
   end subroutine compute_element_strain_att_noDev
 
+!
+!--------------------------------------------------------------------------------------------
+!
+
+  subroutine compute_curl(rotations_elem,ispec,displ,ibool)
+
+  use constants, only: CUSTOM_REAL, NDIM, NGLLX, NGLLY, NGLLZ, NCMP ! BS BS ROT
+
+  use specfem_par, only: &
+  hprime_xx,hprime_yy,hprime_zz
+
+  use specfem_par_crustmantle, only: &
+    xix_crust_mantle,xiy_crust_mantle,xiz_crust_mantle, &
+    etax_crust_mantle,etay_crust_mantle,etaz_crust_mantle, &
+    gammax_crust_mantle,gammay_crust_mantle,gammaz_crust_mantle
+
+
+  implicit none
+
+! include values created by the mesher
+! done for performance only using static allocation to allow for loop unrolling
+  include "OUTPUT_FILES/values_from_mesher.h"
+
+!  integer, dimension(nrec) :: ispec_selected_rec
+
+! displacement and acceleration
+  real(kind=CUSTOM_REAL), dimension(NDIM,NGLOB_CRUST_MANTLE) :: displ
+
+! arrays with mesh parameters per slice
+  integer, dimension(NGLLX,NGLLY,NGLLZ,NSPEC_CRUST_MANTLE) :: ibool
+
+  real(kind=CUSTOM_REAL), dimension(NDIM,NGLLX,NGLLY,NGLLZ) :: rotations_elem
+
+  integer ispec,iglob
+  integer i,j,k,l
+
+  real(kind=CUSTOM_REAL) xixl,xiyl,xizl,etaxl,etayl,etazl,gammaxl,gammayl,gammazl,jacobianl
+  real(kind=CUSTOM_REAL) duxdxl,duxdyl,duxdzl,duydxl,duydyl,duydzl,duzdxl,duzdyl,duzdzl
+
+  real(kind=CUSTOM_REAL) hp1,hp2,hp3
+
+  real(kind=CUSTOM_REAL) tempx1l,tempx2l,tempx3l
+  real(kind=CUSTOM_REAL) tempy1l,tempy2l,tempy3l
+  real(kind=CUSTOM_REAL) tempz1l,tempz2l,tempz3l
+
+
+!    ispec=ispec_selected_rec(irec)
+
+    do k=1,NGLLZ ! changed to test comparison with array-derived rotations (problems with vertical gradients at free surface?)
+!    do k=1,NGLLZ-1 ! changed back to old version
+      do j=1,NGLLY
+        do i=1,NGLLX
+
+          tempx1l = 0._CUSTOM_REAL
+          tempx2l = 0._CUSTOM_REAL
+          tempx3l = 0._CUSTOM_REAL
+
+          tempy1l = 0._CUSTOM_REAL
+          tempy2l = 0._CUSTOM_REAL
+          tempy3l = 0._CUSTOM_REAL
+
+          tempz1l = 0._CUSTOM_REAL
+          tempz2l = 0._CUSTOM_REAL
+          tempz3l = 0._CUSTOM_REAL
+
+
+          do l=1,NGLLX
+            hp1 = hprime_xx(i,l)
+            iglob = ibool(l,j,k,ispec)
+            tempx1l = tempx1l + displ(1,iglob)*hp1
+            tempy1l = tempy1l + displ(2,iglob)*hp1
+            tempz1l = tempz1l + displ(3,iglob)*hp1
+!!! can merge these loops because NGLLX = NGLLY = NGLLZ         enddo
+
+!!! can merge these loops because NGLLX = NGLLY = NGLLZ          do l=1,NGLLY
+            hp2 = hprime_yy(j,l)
+            iglob = ibool(i,l,k,ispec)
+            tempx2l = tempx2l + displ(1,iglob)*hp2
+            tempy2l = tempy2l + displ(2,iglob)*hp2
+            tempz2l = tempz2l + displ(3,iglob)*hp2
+ !!! can merge these loops because NGLLX = NGLLY = NGLLZ         enddo
+
+!!! can merge these loops because NGLLX = NGLLY = NGLLZ          do l=1,NGLLZ
+            hp3 = hprime_zz(k,l)
+            iglob = ibool(i,j,l,ispec)
+            tempx3l = tempx3l + displ(1,iglob)*hp3
+            tempy3l = tempy3l + displ(2,iglob)*hp3
+            tempz3l = tempz3l + displ(3,iglob)*hp3
+          enddo
+
+!         get derivatives of ux, uy and uz with respect to x, y and z
+
+          xixl = xix_crust_mantle(i,j,k,ispec)
+          xiyl = xiy_crust_mantle(i,j,k,ispec)
+          xizl = xiz_crust_mantle(i,j,k,ispec)
+          etaxl = etax_crust_mantle(i,j,k,ispec)
+          etayl = etay_crust_mantle(i,j,k,ispec)
+          etazl = etaz_crust_mantle(i,j,k,ispec)
+          gammaxl = gammax_crust_mantle(i,j,k,ispec)
+          gammayl = gammay_crust_mantle(i,j,k,ispec)
+          gammazl = gammaz_crust_mantle(i,j,k,ispec)
+          !jacobianl = jacobian(i,j,k,ispec)          ! BS BS old version
+
+! compute the jacobian
+          jacobianl = 1._CUSTOM_REAL / (xixl*(etayl*gammazl-etazl*gammayl) &
+                        - xiyl*(etaxl*gammazl-etazl*gammaxl) &
+                        + xizl*(etaxl*gammayl-etayl*gammaxl))
+
+          duxdxl = xixl*tempx1l + etaxl*tempx2l + gammaxl*tempx3l
+          duxdyl = xiyl*tempx1l + etayl*tempx2l + gammayl*tempx3l
+          duxdzl = xizl*tempx1l + etazl*tempx2l + gammazl*tempx3l
+
+          duydxl = xixl*tempy1l + etaxl*tempy2l + gammaxl*tempy3l
+          duydyl = xiyl*tempy1l + etayl*tempy2l + gammayl*tempy3l
+          duydzl = xizl*tempy1l + etazl*tempy2l + gammazl*tempy3l
+
+          duzdxl = xixl*tempz1l + etaxl*tempz2l + gammaxl*tempz3l
+          duzdyl = xiyl*tempz1l + etayl*tempz2l + gammayl*tempz3l
+          duzdzl = xizl*tempz1l + etazl*tempz2l + gammazl*tempz3l
+
+
+          rotations_elem(1,i,j,k)= 0.5_CUSTOM_REAL *(duzdyl - duydzl) !x
+          rotations_elem(2,i,j,k)= 0.5_CUSTOM_REAL *(duxdzl - duzdxl) !y
+          rotations_elem(3,i,j,k)= 0.5_CUSTOM_REAL *(duydxl - duxdyl) !z
+
+        enddo
+      enddo
+    enddo
+
+
+  end subroutine compute_curl
+

@@ -29,7 +29,7 @@
 !! \param nrec_local The number of receivers on the local processor
   subroutine init_asdf_data(nrec_local)
 
-  use specfem_par, only: myrank
+  use specfem_par, only: myrank, NCMP ! BS BS ROT
 
   use asdf_data, only: asdf_container
 
@@ -40,7 +40,7 @@
   ! Variables
   integer :: total_seismos_local, ier
 
-  total_seismos_local = nrec_local*3 ! 3 components
+  total_seismos_local = nrec_local*NCMP ! BS BS ROT
 
   asdf_container%nrec_local = nrec_local
 
@@ -75,7 +75,7 @@
 !! \param iorientation The recorded seismogram's orientation direction
   subroutine store_asdf_data(seismogram_tmp, irec_local, irec, chn, iorientation)
 
-  use constants, only: CUSTOM_REAL
+  use constants, only: CUSTOM_REAL, NDIM, NCMP ! BS BS ROT
 
   use specfem_par, only: &
     station_name,network_name, &
@@ -106,9 +106,12 @@
     index_increment = iorientation
   endif
 
+  ! BS BS ROT
+  if (NCMP == NDIM*2 .and. chn(2:2) == 'Y') index_increment = index_increment + NDIM
+
   ! trace index
   !i = (irec_local-1)*(3) + (iorientation)
-  i = (irec_local-1)*(3) + (index_increment)
+  i = (irec_local-1)*(NCMP) + (index_increment) ! BS BS ROT
 
   length_station_name = len_trim(station_name(irec))
   length_network_name = len_trim(network_name(irec))
@@ -135,6 +138,8 @@
 !> Closes the ASDF data structure by deallocating all arrays
   subroutine close_asdf_data()
 
+  use constants, only: NCMP ! BS BS ROT
+
   use asdf_data, only: asdf_container
 
   implicit none
@@ -142,7 +147,7 @@
   !Variables
   integer :: i
 
-  do i = 1, asdf_container%nrec_local*3 ! 3 components
+  do i = 1, asdf_container%nrec_local*NCMP ! BS BS ROT
     deallocate(asdf_container%records(i)%record)
   enddo
   deallocate (asdf_container%receiver_name_array)
@@ -159,7 +164,7 @@
   subroutine write_asdf()
 
   use constants, only: OUTPUT_PROVENANCE
-  use constants_solver, only: NDIM,itag
+  use constants_solver, only: NDIM,itag,NCMP ! BS BS ROT
 
   use asdf_data, only: asdf_container
 
@@ -204,7 +209,7 @@
   !   These variables are used to know where further writes should be done.
   !   They have to be cleaned as soon as they become useless
   integer :: waveforms_grp  ! Group "/Waveforms/"
-  integer, dimension(3) ::  data_ids   ! BS BS
+  integer, dimension(NCMP) ::  data_ids   ! BS BS ! BS BS ROT
 
   integer :: station_grp, stationxml_grp, current_proc, sender, receiver ! BS BS
   real (kind=CUSTOM_REAL), dimension(:,:), allocatable :: one_seismogram ! BS BS
@@ -283,7 +288,7 @@
 
   allocate(networks_names(num_stations), stat=ier)
   allocate(stations_names(num_stations), stat=ier)
-  allocate(component_names(num_stations*3), stat=ier)
+  allocate(component_names(num_stations*NCMP), stat=ier) ! BS BS ROT
 
   !--------------------------------------------------------
   ! ASDF variables
@@ -305,7 +310,7 @@
   allocate(station_longs_gather(max_num_stations_gather,mysize))
   allocate(station_elevs_gather(max_num_stations_gather,mysize))
   allocate(station_depths_gather(max_num_stations_gather,mysize))
-  allocate(component_names_gather(max_num_stations_gather*3, mysize))
+  allocate(component_names_gather(max_num_stations_gather*NCMP, mysize)) ! BS BS ROT
 
   ! This needs to be done because asdf_data is a pointer
   do i = 1, num_stations
@@ -313,7 +318,7 @@
     write(stations_names(i), '(a)') asdf_container%receiver_name_array(i)
   enddo
 
-  do i = 1, num_stations*3
+  do i = 1, num_stations*NCMP ! BS BS ROT
     write(component_names(i), '(a)') asdf_container%component_array(i)
   enddo
 
@@ -348,16 +353,16 @@
                        mysize)
 
   do i = 1, mysize
-    displs(i) = (i-1) * max_num_stations_gather * 3
-    rcounts(i) = num_stations_gather(i) * 3
+    displs(i) = (i-1) * max_num_stations_gather * NCMP ! BS BS ROT
+    rcounts(i) = num_stations_gather(i) * NCMP
   enddo
 
   call all_gather_all_ch(component_names, &
-                       num_stations*3*3, &
+                       num_stations*NCMP*3, & ! BS BS ROT
                        component_names_gather, &
                        rcounts*3, &
                        displs*3, &
-                       max_num_stations_gather*3, &
+                       max_num_stations_gather*NCMP, & ! BS BS ROT
                        3, &
                        mysize)
 
@@ -403,7 +408,7 @@
   deallocate(displs)
   deallocate(rcounts)
 
-  allocate(one_seismogram(NDIM,seismo_current),stat=ier)
+  allocate(one_seismogram(NCMP,seismo_current),stat=ier)
 
   !--------------------------------------------------------
   ! write ASDF
@@ -455,11 +460,11 @@
                                    start_time_string, stationxml)
             call ASDF_write_station_xml_f(stationxml_grp, trim(stationxml)//C_NULL_CHAR, ier)
 
-            do  i = 1, 3 ! loop over each component
+            do  i = 1, NCMP ! loop over each component ! BS BS ROT
               ! Generate unique waveform name
               write(waveform_name, '(a)') &
                 trim(network_names_gather(j,k)) // "." // &
-                trim(station_names_gather(j,k)) // ".S3." //trim(component_names_gather(i+(3*(j-1)),k)) &
+                trim(station_names_gather(j,k)) // ".S3." //trim(component_names_gather(i+(NCMP*(j-1)),k)) & ! BS BS ROT
                   //"__"//trim(start_time_string(1:19))//"__"//trim(end_time_string(1:19))//"__synthetic"
                 call ASDF_define_waveform_f(station_grp, &
                   nsamples, start_time, sampling_rate, &
@@ -504,14 +509,14 @@
 
       do j = 1, num_stations_gather(k) ! loop over number of stations on that process
 
-        l = (j-1)*(NDIM) ! Index of current receiver in asdf_container%records
+        l = (j-1)*(NCMP) ! Index of current receiver in asdf_container%records ! BS BS ROT
 
         ! First get the information to the master proc
         if (current_proc == 0) then ! current_proc is master proc
 
           !one_seismogram(:,:) = seismograms(:,j,:)
           if (myrank == 0) then
-            do i = 1, NDIM
+            do i = 1, NCMP ! BS BS ROT
             !  write(*,*) j, l, l+i, size(asdf_container%records)
               one_seismogram(i,:) = asdf_container%records(l+i)%record(1:seismo_current)
             enddo
@@ -522,15 +527,15 @@
           if (myrank == current_proc) then
 
             !one_seismogram(:,:) = seismograms(:,j,:)
-            do i = 1, NDIM
+            do i = 1, NCMP ! BS BS ROT
               one_seismogram(i,:) = asdf_container%records(l+i)%record(1:seismo_current)
             enddo
 
-            call send_cr(one_seismogram,NDIM*seismo_current,receiver,itag)
+            call send_cr(one_seismogram,NCMP*seismo_current,receiver,itag) ! BS BS ROT
 
           else if (myrank == 0) then
 
-            call recv_cr(one_seismogram,NDIM*seismo_current,sender,itag)
+            call recv_cr(one_seismogram,NCMP*seismo_current,sender,itag) ! BS BS ROT
 
           endif
         endif
@@ -543,11 +548,11 @@
             trim(station_names_gather(j, k)) // C_NULL_CHAR, &
             station_grp)
 
-          do  i = 1, NDIM ! loop over each component
+          do  i = 1, NCMP ! loop over each component ! BS BS ROT
             ! Generate unique waveform name
             write(waveform_name, '(a)') &
               trim(network_names_gather(j,k)) // "." // &
-              trim(station_names_gather(j,k)) // ".S3." //trim(component_names_gather(i+(3*(j-1)),k)) &
+              trim(station_names_gather(j,k)) // ".S3." //trim(component_names_gather(i+(NCMP*(j-1)),k)) & ! BS BS ROT
                 //"__"//trim(start_time_string(1:19))//"__"//trim(end_time_string(1:19))//"__synthetic"
 
             call ASDF_open_waveform_f(station_grp, &
@@ -587,14 +592,14 @@
           trim(station_names_gather(j, k)) // C_NULL_CHAR, &
           station_grp)
 
-        l = (j-1)*(NDIM) ! Index of current receiver in asdf_container%records
+        l = (j-1)*(NCMP) ! Index of current receiver in asdf_container%records ! BS BS ROT
 
-        do  i = 1, NDIM ! loop over each component
+        do  i = 1, NCMP ! loop over each component ! BS BS ROT
 
           ! Generate unique waveform name
           write(waveform_name, '(a)') &
             trim(network_names_gather(j,k)) // "." // &
-            trim(station_names_gather(j,k)) // ".S3." //trim(component_names_gather(i+(3*(j-1)),k)) &
+            trim(station_names_gather(j,k)) // ".S3." //trim(component_names_gather(i+(NCMP*(j-1)),k)) & ! BS BS ROT
               //"__"//trim(start_time_string(1:19))//"__"//trim(end_time_string(1:19))//"__synthetic"
 
           call ASDF_open_waveform_f(station_grp, &
@@ -902,6 +907,8 @@
   subroutine station_to_stationxml(station_name, network_name, latitude, longitude, elevation, &
                                    burial_depth, start_time_string, stationxmlstring)
 
+  use constants, only: NDIM, NCMP ! BS BS ROT
+
   implicit none
   character(len=*) :: stationxmlstring
   character(len=*) :: station_name
@@ -911,6 +918,7 @@
   integer :: len_station_name, len_network_name, len_station_lat
   integer :: len_station_lon, len_station_depth, len_station_ele
   real, intent(in) :: latitude, longitude, elevation, burial_depth
+  character(len=1) :: cinsco, cncmp ! BS BS ROT
 
   ! Convert double precision to character strings for the StationXML string
 
@@ -928,6 +936,15 @@
   len_station_depth = len(trim(station_depth))
   len_station_ele = len(trim(station_ele))
 
+  ! BS BS ROT
+  if (NCMP==NDIM) then
+      cinsco='X'
+  elseif (NCMP==NDIM*2) then
+      cinsco='Y'
+  endif
+
+  write(cncmp,'(i1)') NCMP
+
   stationxmlstring = '<FDSNStationXML schemaVersion="1.0" xmlns="http://www.fdsn.org/xml/station/1">'//&
                      '<Source>SPECFEM3D_GLOBE</Source>'//&
                      '<Module>SPECFEM3D_GLOBE/asdf-library</Module>'//&
@@ -942,9 +959,9 @@
                      '<Name>N/A</Name>'//&
                      '</Site>'//&
                      '<CreationDate>'//trim(start_time_string)//'</CreationDate>'//&
-                     '<TotalNumberChannels>3</TotalNumberChannels>'//&
-                     '<SelectedNumberChannels>3</SelectedNumberChannels>'//&
-                     '<Channel locationCode="S3" code="MXN"'//&
+                     '<TotalNumberChannels>'//trim(cncmp)//'</TotalNumberChannels>'//& ! BS BS ROT
+                     '<SelectedNumberChannels>'//trim(cncmp)//'</SelectedNumberChannels>'//&
+                     '<Channel locationCode="S3" code="M'//trim(cinsco)//'N"'//&
                      ' startDate="'//trim(start_time_string)//'">'//&
                      '<Latitude unit="DEGREES">'//trim(station_lat(1:len_station_lat))//'</Latitude>'//&
                      '<Longitude unit="DEGREES">'//trim(station_lon(1:len_station_lon))//'</Longitude>'//&
@@ -953,7 +970,7 @@
                      '<Azimuth>0.0</Azimuth>'//&
                      '<Dip>0.0</Dip>'//&
                      '</Channel>'//&
-                     '<Channel locationCode="S3" code="MXE"'//&
+                     '<Channel locationCode="S3" code="M'//trim(cinsco)//'E"'//&
                      ' startDate="'//trim(start_time_string)//'">'//&
                      '<Latitude unit="DEGREES">'//trim(station_lat(1:len_station_lat))//'</Latitude>'//&
                      '<Longitude unit="DEGREES">'//trim(station_lon(1:len_station_lon))//'</Longitude>'//&
@@ -962,7 +979,7 @@
                      '<Azimuth>90.0</Azimuth>'//&
                      '<Dip>0.0</Dip>'//&
                      '</Channel>'//&
-                     '<Channel locationCode="S3" code="MXZ"'//&
+                     '<Channel locationCode="S3" code="M'//trim(cinsco)//'Z"'//&
                      ' startDate="'//trim(start_time_string)//'">'//&
                      '<Latitude unit="DEGREES">'//trim(station_lat(1:len_station_lat))//'</Latitude>'//&
                      '<Longitude unit="DEGREES">'//trim(station_lon(1:len_station_lon))//'</Longitude>'//&

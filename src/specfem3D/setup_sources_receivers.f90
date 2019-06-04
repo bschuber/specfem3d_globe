@@ -575,7 +575,8 @@
     ! seismograms array size in MB
     if (SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
       ! seismograms need seismograms(NDIM,nrec_local,NTSTEP_BETWEEN_OUTPUT_SEISMOS)
-      sizeval = dble(maxrec) * dble(NDIM * NTSTEP_BETWEEN_OUTPUT_SEISMOS * CUSTOM_REAL / 1024. / 1024. )
+      ! BS BS ROT
+      sizeval = dble(maxrec) * dble(NCMP * NTSTEP_BETWEEN_OUTPUT_SEISMOS * CUSTOM_REAL / 1024. / 1024. )
     else
       ! adjoint seismograms need seismograms(NDIM*NDIM,nrec_local,NTSTEP_BETWEEN_OUTPUT_SEISMOS)
       sizeval = dble(maxrec) * dble(NDIM * NDIM * NTSTEP_BETWEEN_OUTPUT_SEISMOS * CUSTOM_REAL / 1024. / 1024. )
@@ -1109,7 +1110,7 @@
 
     ! allocates seismogram array
     if (SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
-      allocate(seismograms(NDIM,nrec_local,NTSTEP_BETWEEN_OUTPUT_SEISMOS),stat=ier)
+      allocate(seismograms(NCMP,nrec_local,NTSTEP_BETWEEN_OUTPUT_SEISMOS),stat=ier) ! BS BS ROT
       if (ier /= 0) stop 'Error while allocating seismograms'
     else
       ! adjoint seismograms
@@ -1135,7 +1136,7 @@
   else
     ! allocates dummy array since we need it to pass as argument e.g. in write_seismograms() routine
     ! note: nrec_local is zero, Fortran 90/95 should allow zero-sized array allocation...
-    allocate(seismograms(NDIM,0,NTSTEP_BETWEEN_OUTPUT_SEISMOS),stat=ier)
+    allocate(seismograms(NCMP,0,NTSTEP_BETWEEN_OUTPUT_SEISMOS),stat=ier) ! BS BS ROT
     if (ier /= 0) stop 'Error while allocating zero seismograms'
     ! dummy allocation
     allocate(hxir_store(1,1), &

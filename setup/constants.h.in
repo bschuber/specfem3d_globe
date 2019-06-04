@@ -553,6 +553,13 @@
 ! 3-D simulation
   integer, parameter :: NDIM = 3
 
+! BS BS For rotational seismograms
+! set to NDIM*1 (=3 for 3-D simulations) to output only translational seismograms
+! set to NDIM*2 (=6 for 3-D simulations) to output both translational and rotational seismograms
+! !!!!!!! Only works with SIMULATION_TYPE==1 !!!!!!!!
+  integer, parameter :: NCMP=NDIM*@NCMP_FACTOR@
+
+
 ! dimension of the boundaries of the slices
   integer, parameter :: NDIM2D = 2
 

@@ -688,6 +688,7 @@ ac_ct_FC
 LDFLAGS
 FCFLAGS
 FC
+NCMP_FACTOR
 COND_CEM_FALSE
 COND_CEM_TRUE
 COND_ASDF_FALSE
@@ -785,6 +786,7 @@ enable_vtk
 with_adios
 with_asdf
 with_cem
+enable_rotational_seismograms
 with_vtk
 with_vtk_suffix
 with_vtk_version
@@ -1445,6 +1447,8 @@ Optional Features:
                           [default=auto]
   --enable-openmp         build OpenMP enabled version [default=no]
   --enable-vtk            build VTK enabled version [default=no]
+  --enable-rotational-seismograms
+                          solver outputs rotational seismograms [default=no]
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -3025,6 +3029,24 @@ fi
 else
   COND_CEM_TRUE='#'
   COND_CEM_FALSE=
+fi
+
+
+###
+### Rotational seismograms
+###
+
+# Check whether --enable-rotational-seismograms was given.
+if test "${enable_rotational_seismograms+set}" = set; then
+  enableval=$enable_rotational_seismograms; want_rotational_seismograms="$enableval"
+else
+  want_rotational_seismograms=no
+fi
+
+if test x"$want_rotational_seismograms" = xno; then
+    NCMP_FACTOR=1
+else
+    NCMP_FACTOR=2
 fi
 
 

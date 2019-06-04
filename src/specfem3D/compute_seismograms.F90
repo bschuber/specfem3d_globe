@@ -36,6 +36,7 @@
   use specfem_par, only: &
     NTSTEP_BETWEEN_OUTPUT_SEISMOS, &
     nrec_local,nu,ispec_selected_rec,number_receiver_global, &
+    hxir_store,hetar_store,hgammar_store, & ! BS BS ROT
     scale_displ,hlagrange_store
 
   use specfem_par_crustmantle, only: ibool_crust_mantle
@@ -47,7 +48,7 @@
 
   integer,intent(in) :: seismo_current
 
-  real(kind=CUSTOM_REAL), dimension(NDIM,nrec_local,NTSTEP_BETWEEN_OUTPUT_SEISMOS),intent(out) :: &
+  real(kind=CUSTOM_REAL), dimension(NCMP,nrec_local,NTSTEP_BETWEEN_OUTPUT_SEISMOS),intent(out) :: &
     seismograms
 
   ! local parameters
@@ -58,6 +59,10 @@
 #else
   integer :: i,j,k
 #endif
+
+  double precision :: uxr,uyr,uzr
+
+  real(kind=CUSTOM_REAL), dimension(NDIM,NGLLX,NGLLY,NGLLZ) :: rotations_elem ! BS BS ROT
 
   do irec_local = 1,nrec_local
 
@@ -85,10 +90,42 @@
 
     ! store North, East and Vertical components
     ! distinguish between single and double precision for reals
-    seismograms(:,irec_local,seismo_current) = real(scale_displ*(nu(:,1,irec)*uxd + &
-                                                                 nu(:,2,irec)*uyd + &
-                                                                 nu(:,3,irec)*uzd), &
+    seismograms(1:NDIM,irec_local,seismo_current) = real(scale_displ*(nu(1:NDIM,1,irec)*uxd + & ! BS BS ROT
+                                                                      nu(1:NDIM,2,irec)*uyd + &
+                                                                      nu(1:NDIM,3,irec)*uzd), &
                                                     kind=CUSTOM_REAL)
+! BS BS begin rotational seismograms
+    if (NCMP==NDIM*2) then
+
+       rotations_elem=ZERO
+       call compute_curl(rotations_elem,ispec,displ,ibool_crust_mantle)
+
+      ! perform the general interpolation using Lagrange polynomials
+      uxr = ZERO
+      uyr = ZERO
+      uzr = ZERO
+
+      do k = 1,NGLLZ
+        do j = 1,NGLLY
+          do i = 1,NGLLX
+
+            hlagrange = hxir_store(irec_local,i)*hetar_store(irec_local,j)*hgammar_store(irec_local,k)
+
+            uxr = uxr + dble(rotations_elem(1,i,j,k))*hlagrange
+            uyr = uyr + dble(rotations_elem(2,i,j,k))*hlagrange
+            uzr = uzr + dble(rotations_elem(3,i,j,k))*hlagrange
+
+          enddo
+        enddo
+      enddo
+
+    ! store North, East and Vertical components
+    ! distinguish between single and double precision for reals
+      seismograms(NDIM+1:NDIM*2,irec_local,seismo_current) = real((nu(1:NDIM,1,irec)*uxr + &
+                                                                   nu(1:NDIM,2,irec)*uyr + &
+                                                                   nu(1:NDIM,3,irec)*uzr), &
+                                                             kind=CUSTOM_REAL)
+    endif ! NCMP==NDIM*2
 
   enddo
 

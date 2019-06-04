@@ -340,7 +340,7 @@
              ! receives info from slave processes
              call recv_singlei(irec,sender,itag)
              if (irec < 1 .or. irec > nrec) call exit_MPI(myrank,'Error while receiving global receiver number')
-             call recv_cr(one_seismogram,NDIM*seismo_current,sender,itag)
+             call recv_cr(one_seismogram,NCMP*seismo_current,sender,itag) ! BS BS ROT
            endif
 
            total_seismos = total_seismos + 1
@@ -373,7 +373,7 @@
           call send_singlei(irec,receiver,itag)
 
           one_seismogram(:,:) = seismograms(:,irec_local,:)
-          call send_cr(one_seismogram,NDIM*seismo_current,receiver,itag)
+          call send_cr(one_seismogram,NCMP*seismo_current,receiver,itag) ! BS BS ROT
         enddo
       endif
     endif
@@ -404,10 +404,12 @@
   use specfem_par, only: &
           cmt_lat => cmt_lat_SAC,cmt_lon => cmt_lon_SAC
 
+  use constants, only: NCMP ! BS BS ROT
+
   implicit none
 
   integer :: irec,irec_local
-  real(kind=CUSTOM_REAL), dimension(NDIM,NTSTEP_BETWEEN_OUTPUT_SEISMOS) :: one_seismogram
+  real(kind=CUSTOM_REAL), dimension(NCMP,NTSTEP_BETWEEN_OUTPUT_SEISMOS) :: one_seismogram ! BS BS ROT
 
   ! local parameters
   real(kind=CUSTOM_REAL), dimension(5,NTSTEP_BETWEEN_OUTPUT_SEISMOS) :: seismogram_tmp
@@ -425,6 +427,8 @@
   real(kind=CUSTOM_REAL) :: cphi,sphi
   integer :: isample
 
+  integer icmp,cmp_offset ! BS BS ROT for rotational seismograms
+
   ! initializes
   seismogram_tmp(:,:) = 0.0_CUSTOM_REAL
 
@@ -438,6 +442,11 @@
     ior_start=1    ! starting from N
     ior_end  =3    ! ending with Z => NEZ
   endif
+
+  do icmp = 1,NCMP/NDIM ! BS BS ROT if NCMP==NDIM*2, we also output the rotational seismograms
+    cmp_offset = (icmp-1)*3
+
+  if (icmp==2) bic(2:2) = 'Y' ! BS BS ROT: use "Y" for rotational seismograms (conforms with IRIS convention)
 
   do iorientation = ior_start,ior_end      ! BS BS changed according to ROTATE_SEISMOGRAMS_RT
 
@@ -491,18 +500,21 @@
       if (iorientation == 4) then ! radial component
          do isample = 1,seismo_current
             seismogram_tmp(iorientation,isample) = &
-               cphi * one_seismogram(1,isample) + sphi * one_seismogram(2,isample)
+               ! BS BS ROT: for rotational seismograms
+               cphi * one_seismogram(cmp_offset+1,isample) + sphi * one_seismogram(cmp_offset+2,isample)
          enddo
       else if (iorientation == 5) then ! transverse component
          do isample = 1,seismo_current
             seismogram_tmp(iorientation,isample) = &
-            -1*sphi * one_seismogram(1,isample) + cphi * one_seismogram(2,isample)
+               ! BS BS ROT: for rotational seismograms
+               -1*sphi * one_seismogram(cmp_offset+1,isample) + cphi * one_seismogram(cmp_offset+2,isample)
          enddo
       endif
 
     else ! keep NEZ components
       do isample = 1,seismo_current
-        seismogram_tmp(iorientation,isample) = one_seismogram(iorientation,isample)
+        ! BS BS ROT: for rotational seismograms
+        seismogram_tmp(iorientation,isample) = one_seismogram(cmp_offset+iorientation,isample)
       enddo
 
     endif
@@ -544,6 +556,8 @@
     endif
 
   enddo ! do iorientation
+
+  enddo ! do icmp ! BS BS ROT for rotational seismograms
 
   end subroutine write_one_seismogram
 

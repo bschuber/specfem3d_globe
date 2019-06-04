@@ -161,6 +161,7 @@
   DEPMAX = BYSAC
   DEPMEN = BYSAC
   SCALE_F= 1000000000  ! factor for y-value, set to 10e9, so that values are in nm
+  if(chn(2:2)=='Y') SCALE_F   = 1 ! BS BS ROT: no scaling for rotational seismograms 
   ODELTA = undef       ! increment from delta
 
   ! begin time
@@ -299,6 +300,7 @@
   ! event type
   IFTYPE = 1 ! 1=ITIME, i.e. seismogram  [REQUIRED] # numbering system is
   IDEP   = 6 ! 6: displ/nm                          # quite strange, best
+  if(chn(2:2)=='Y') IDEP   = 5 ! unknown ! BS BS ROT
 
   IZTYPE = 11 !=origint reference time equivalent ! # by chnhdr and write
   IEVTYP = 40 !event type, 40: Earthquake           # alpha and check

@@ -180,6 +180,22 @@ AC_ARG_WITH([cem],
     [want_cem=no])
 AM_CONDITIONAL([COND_CEM], [test x"$want_cem" != xno])
 
+###
+### Rotational seismograms
+###
+
+AC_ARG_ENABLE([rotational-seismograms],
+    [AS_HELP_STRING([--enable-rotational-seismograms],
+        [solver outputs rotational seismograms @<:@default=no@:>@])],
+    [want_rotational_seismograms="$enableval"],
+    [want_rotational_seismograms=no])
+if test x"$want_rotational_seismograms" = xno; then
+    NCMP_FACTOR=1
+else
+    NCMP_FACTOR=2
+fi
+AC_SUBST([NCMP_FACTOR])
+
 ############################################################
 
 # Checks for programs.
