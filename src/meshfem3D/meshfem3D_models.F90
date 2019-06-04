@@ -139,7 +139,7 @@
         ! GAP model
         call model_gapp2_broadcast()
 
-      case (THREE_D_MODEL_SGLOBE)
+      case (THREE_D_MODEL_SGLOBE,THREE_D_MODEL_SGLOBE_ISO)
         ! SGLOBE-rani model
         call model_sglobe_broadcast()
 
@@ -296,29 +296,34 @@
     case (REFERENCE_MODEL_PREM)
       ! PREM (by Dziewonski & Anderson) - used also as background for 3D models
       if (TRANSVERSE_ISOTROPY) then
-        ! gets PREM values
-        select case (THREE_D_MODEL)
+        ! default PREM:
+        !   gets anisotropic PREM parameters, with radial anisotropic extension (from moho to surface for crustal model)
+        call model_prem_aniso(r_prem,rho,vpv,vph,vsv,vsh,eta_aniso, &
+                  Qkappa,Qmu,idoubling,CRUSTAL,ONE_CRUST,RICB,RCMB,RTOPDDOUBLEPRIME, &
+                  R600,R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST,ROCEAN)
+
         ! specific 3D models with PREM references which would become too fast at shorter periods ( < 40s Love waves)
-        case (THREE_D_MODEL_SGLOBE)
-          ! gets anisotropic PREM parameters, with isotropic extension (from moho to surface for crustal model)
-          call model_prem_aniso_extended_isotropic(r_prem,rho,vpv,vph,vsv,vsh,eta_aniso,Qkappa,Qmu, &
-                    idoubling,CRUSTAL,ONE_CRUST,RICB,RCMB,RTOPDDOUBLEPRIME, &
-                    R600,R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST,ROCEAN)
-        ! daniel debug: eventually also Ritsema models, check...
+        !select case (THREE_D_MODEL)
+        !
+        ! eventually sgloberani, check...
+        !case (THREE_D_MODEL_SGLOBE,THREE_D_MODEL_SGLOBE_ISO)
+        !  ! gets anisotropic PREM parameters, with isotropic extension (from moho to surface for crustal model)
+        !  call model_prem_aniso_extended_isotropic(r_prem,rho,vpv,vph,vsv,vsh,eta_aniso,Qkappa,Qmu, &
+        !            idoubling,CRUSTAL,ONE_CRUST,RICB,RCMB,RTOPDDOUBLEPRIME, &
+        !            R600,R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST,ROCEAN)
+        !
+        ! eventually also Ritsema models, check...
         !case (THREE_D_MODEL_S20RTS,THREE_D_MODEL_S40RTS)
         !  ! gets anisotropic PREM parameters, with isotropic extension (from moho to surface for crustal model)
         !  call model_prem_aniso_extended_isotropic(r_prem,rho,vpv,vph,vsv,vsh,eta_aniso,Qkappa,Qmu, &
         !            idoubling,CRUSTAL,ONE_CRUST,RICB,RCMB,RTOPDDOUBLEPRIME, &
         !            R600,R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST,ROCEAN)
-        case default
-          ! default PREM
-          ! gets anisotropic PREM parameters, with radial anisotropic extension (from moho to surface for crustal model)
-          call model_prem_aniso(r_prem,rho,vpv,vph,vsv,vsh,eta_aniso, &
-                    Qkappa,Qmu,idoubling,CRUSTAL,ONE_CRUST,RICB,RCMB,RTOPDDOUBLEPRIME, &
-                    R600,R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST,ROCEAN)
-        end select
+        !
+        !case default
+        !  continue
+        !end select
       else
-        ! isotropic model
+        ! isotropic PREM model
         call model_prem_iso(r_prem,rho,drhodr,vp,vs,Qkappa,Qmu,idoubling,CRUSTAL, &
                   ONE_CRUST,.true.,RICB,RCMB,RTOPDDOUBLEPRIME, &
                   R600,R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST,ROCEAN)
@@ -616,8 +621,18 @@
         vsh = vsh*(1.0d0+dvs)
         rho = rho*(1.0d0+drho)
 
-      case (THREE_D_MODEL_SGLOBE)
+      case (THREE_D_MODEL_SGLOBE,THREE_D_MODEL_SGLOBE_ISO)
         ! 3D SGLOBE-rani model (Chang)
+
+        ! normally mantle perturbations are taken from 24.4km (R_MOHO) up.
+        ! we need to add the if statement for sgloberani_iso or sgloberani_aniso to take from 50km up:
+        if (r_prem > RCMB/R_EARTH .and. r_prem < 6321000.d0/R_EARTH) then
+          r_used = r
+        else   ! if (r_prem >= 6321000.d0/R_EARTH) then
+          ! this will then "extend the mantle up to the surface" from 50km depth
+          r_used = 6321000.d0/R_EARTH
+        endif
+
         call mantle_sglobe(r_used,theta,phi,dvsv,dvsh,dvp,drho)
 
         if (TRANSVERSE_ISOTROPY) then

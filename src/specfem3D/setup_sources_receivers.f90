@@ -248,6 +248,9 @@
       case (2)
         ! Heaviside
         t0 = min(t0,1.5d0 * (tshift_src(isource) - hdur(isource)))
+      case (3)
+        ! Monochromatic
+        t0 = 0.d0
       case default
         stop 'unsupported force_stf value!'
       end select
@@ -701,7 +704,7 @@
     filename = trim(OUTPUT_FILES)//'/sr_tmp.vtk'
     filename_new = trim(OUTPUT_FILES)//'/sr.vtk'
     write(command, &
-  "('sed -e ',a1,'s/POINTS.*/POINTS',i6,' float/',a1,' < ',a,' > ',a)")&
+  "('sed -e ',a1,'s/POINTS.*/POINTS',i6,' float/',a1,'<',a,'>',a)")&
       "'",NSOURCES + nrec,"'",trim(filename),trim(filename_new)
 
     ! note: this system() routine is non-standard Fortran
@@ -711,7 +714,7 @@
     filename_new = trim(OUTPUT_FILES)//'/receiver.vtk'
     write(command, &
   "('awk ',a1,'{if (NR < 5) print $0;if (NR == 6)&
-   &print ',a1,'POINTS',i6,' float',a1,';if (NR > 5+',i6,')print $0}',a1,' < ',a,' > ',a)")&
+   &print ',a1,'POINTS',i6,' float',a1,';if (NR > 5+',i6,')print $0}',a1,'<',a,'>',a)")&
       "'",'"',nrec,'"',NSOURCES,"'",trim(filename),trim(filename_new)
 
     ! note: this system() routine is non-standard Fortran
@@ -720,7 +723,7 @@
     ! only extract source locations and remove temporary file
     filename_new = trim(OUTPUT_FILES)//'/source.vtk'
     write(command, &
-  "('awk ',a1,'{if (NR < 6 + ',i6,') print $0}END{print}',a1,' < ',a,' > ',a,'; rm -f ',a)")&
+  "('awk ',a1,'{if (NR < 6 + ',i6,') print $0}END{print}',a1,'<',a,'>',a,'; rm -f ',a)")&
       "'",NSOURCES,"'",trim(filename),trim(filename_new),trim(filename)
 
     ! note: this system() routine is non-standard Fortran
